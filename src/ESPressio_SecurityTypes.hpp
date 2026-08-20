@@ -72,6 +72,15 @@ struct TransportSecurityConfig {
     AeadAlgorithm OutboundAlgorithm = AeadAlgorithm::AES256GCM;
     uint32_t OutboundKeyID = 1;
     uint64_t SenderID = 0;
+
+    /*
+     * Authenticated sender-session/epoch identifier. Zero means generate a
+     * fresh non-zero value from IRandomSource when the first protected packet
+     * is produced. Applications may supply a non-zero value when session
+     * identity is provisioned externally or deterministic behavior is needed.
+     */
+    uint64_t SessionID = 0;
+
     std::size_t MaximumPlaintextBytes = 16384;
     std::size_t ReplayWindowSize = 64;
 };
@@ -80,6 +89,7 @@ struct UnprotectedPayload {
     uint8_t Protocol = 0;
     uint32_t KeyID = 0;
     uint64_t SenderID = 0;
+    uint64_t SessionID = 0;
     uint64_t Sequence = 0;
     AeadAlgorithm Algorithm = AeadAlgorithm::Unknown;
     bool Protected = false;
