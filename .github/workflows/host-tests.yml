@@ -2,7 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - feature/observable-callback-coverage
   pull_request:
     branches: [main]
 
@@ -22,6 +24,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Checkout ESPressio Observable 3.0.1
+        uses: actions/checkout@v4
+        with:
+          repository: Flowduino/ESPressio-Observable
+          ref: 3.0.1
+          path: deps/ESPressio-Observable
       - name: Install PlatformIO
         run: pip install platformio
       - name: Compile BasicSecurePayload
@@ -29,6 +37,7 @@ jobs:
           pio ci examples/BasicSecurePayload/BasicSecurePayload.ino
           --board esp32dev
           --lib .
+          --lib deps/ESPressio-Observable
           --project-option="build_flags=-std=gnu++17"
           --project-option="build_unflags=-std=gnu++11"
       - name: Compile MbedTLSAlgorithms
@@ -36,5 +45,6 @@ jobs:
           pio ci examples/MbedTLSAlgorithms/MbedTLSAlgorithms.ino
           --board esp32dev
           --lib .
+          --lib deps/ESPressio-Observable
           --project-option="build_flags=-std=gnu++17"
           --project-option="build_unflags=-std=gnu++11"
