@@ -19,11 +19,11 @@ Event / Command / Clock Sync / application protocol
              ESP-NOW / UDP / TCP / ...
 ```
 
-On receive, the order is reversed. Authentication, decryption, protocol binding and replay validation complete before the plaintext is handed upward.
+On receive, the order is reversed. Authentication, decryption, protocol binding and replay validation complete before plaintext is handed upward.
 
 ## Version 1 Envelope
 
-The fixed 36-byte header is encoded in little-endian form and contains:
+The fixed 44-byte header is encoded in little-endian form and contains:
 
 ```text
 uint32 magic           "ESPS"
@@ -33,6 +33,7 @@ uint8  flags           reserved
 uint8  protocol        application/transport protocol identifier
 uint32 keyId
 uint64 senderId
+uint64 sessionId
 uint64 sequence
 uint8  nonceLength
 uint8  tagLength
@@ -40,7 +41,7 @@ uint16 reserved
 uint32 ciphertextLength
 ```
 
-The fixed header is supplied to AEAD as associated authenticated data. It is followed by:
+The complete fixed header is supplied to AEAD as associated authenticated data. It is followed by:
 
 ```text
 nonce
@@ -48,7 +49,28 @@ ciphertext
 authentication tag
 ```
 
-The nonce and ciphertext are not secret metadata outside the AEAD construction; the secret key itself is never encoded in the packet.
+The secret key itself is never encoded in the packet.
+
+## Sender Session / Epoch Identity
+
+`sessionId` separates replay state between sender lifetimes. By default `TransportSecurityConfig::SessionID` is zero; the first protected transmission then generates a fresh non-zero 64-bit session ID from the configured `IRandomSource`.
+
+A sender may therefore reboot and restart its sequence number at `1` without being confused with the previous boot:
+
+```text
+sender 0x10, session A, sequence 1
+sender 0x10, session A, sequence 2
+
+<sender reboots>
+
+sender 0x10, session B, sequence 1
+```
+
+Both sequence `1` packets are valid because they belong to different authenticated sessions. Replaying either packet within its own session remains invalid.
+
+Applications that own session identity externally may set a non-zero `TransportSecurityConfig::SessionID`. `SetConfig()` resets the outbound sequence and replay window; setting `SessionID` back to zero causes a fresh automatic session to be generated on the next protected send.
+
+The session ID is not a secret. Its security role comes from being authenticated as AEAD associated data.
 
 ## Algorithm Resolution
 
@@ -72,9 +94,9 @@ Do not use `Preferred` where plaintext acceptance violates the security model.
 
 ## Replay Protection
 
-Authenticated sender ID, key ID and 64-bit sequence are used by `ReplayWindow`. Replay state is committed only after authentication and protocol validation, preventing unauthenticated packets from advancing the replay window.
+Authenticated sender ID, key ID, session ID and 64-bit sequence are used by `ReplayWindow`.
 
-The default window is 64 packets and permits limited out-of-order delivery while rejecting duplicates and stale sequences.
+Replay state is committed only after successful AEAD authentication and protocol validation, preventing unauthenticated packets from advancing the replay window. The default window is 64 packets and permits limited legitimate out-of-order delivery while rejecting duplicates and stale sequences within each sender/key/session domain.
 
 ## Concrete Transport Integration
 
@@ -104,6 +126,7 @@ A packet is not delivered upward when any of the following occurs:
 - unsupported envelope version;
 - unavailable algorithm;
 - unavailable/wrong-length key;
+- invalid zero session/sequence identifier;
 - AEAD authentication failure;
 - protocol mismatch;
 - replay/stale sequence;
@@ -112,13 +135,14 @@ A packet is not delivered upward when any of the following occurs:
 
 `SecurityResult` communicates the reason without exposing secret material.
 
-## Key/Nonce Operational Rules
+## Key / Nonce / Session Operational Rules
 
 - Never log or serialize key bytes.
 - Provision production keys outside source control.
 - Rotate keys according to application risk and lifetime.
-- Ensure the configured random source is appropriate for cryptographic nonce generation.
+- Ensure the configured random source is appropriate for cryptographic nonce and automatic session-ID generation.
 - Treat sender IDs as stable security identities for replay-domain separation, not merely display labels.
+- Do not deliberately reuse the same explicit session ID after resetting its sequence unless receiver replay state has also been safely reset or expired by application policy.
 - Consider secure boot, flash encryption and protected key storage as complementary platform controls.
 
 ## Downstream Direction
