@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#define MBEDTLS_CCM_C 1
 #ifndef MBEDTLS_CIPHER_ID_AES
 #define MBEDTLS_CIPHER_ID_AES 1
 #endif
