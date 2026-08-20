@@ -38,7 +38,7 @@ jobs:
           --lib .
           --lib deps/ESPressio-Observable
           --project-option="build_flags=-std=gnu++17"
-          --project-option="build_unflags=-std=gnu++11 -fno-rtti"
+          --project-option="build_unflags=-std=gnu++11"
       - name: Compile MbedTLSAlgorithms
         run: >-
           pio ci examples/MbedTLSAlgorithms/MbedTLSAlgorithms.ino
@@ -46,4 +46,4 @@ jobs:
           --lib .
           --lib deps/ESPressio-Observable
           --project-option="build_flags=-std=gnu++17"
-          --project-option="build_unflags=-std=gnu++11 -fno-rtti"
+          --project-option="build_unflags=-std=gnu++11"
