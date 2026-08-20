@@ -4,6 +4,24 @@ Transport-neutral authenticated encryption, authentication, replay protection an
 
 ESPressio Security protects **opaque transport payloads** without knowing whether they contain Events, Commands, clock synchronization messages, application packets, or another protocol. Concrete transports such as ESP-NOW, UDP, TCP and WebSockets can therefore opt into the same security layer while higher-level application protocols remain independent of cryptography.
 
+## 0.2.0 Development Update — Observable Callback Coverage
+
+The `feature/observable-callback-coverage` branch targets **ESPressio Security 0.2.0**. The stable-release information below remains the historical 0.1.0 documentation until 0.2.0 is released.
+
+For 0.2.0, ESPressio Security adds a required dependency on **ESPressio Observable >= 3.0.1 and < 4.0.0** and introduces `ITransportSecurityObserver`. `TransportSecurity` now exposes synchronous observations for material configuration changes, security-session reset/establishment, replay-protection reset, and Security failures while preserving the existing `SecurityResult` return contract.
+
+ESPressio Event remains **optional**. ESPressio Event 5.8.0 adds `TransportSecurityEventBridge`, which binds to a specific `TransportSecurity` instance and converts those observations into asynchronous Events without making Event a Security dependency. Key material is never exposed through the observer or Event surfaces.
+
+Development-branch PlatformIO dependencies are therefore:
+
+```ini
+lib_deps =
+    https://github.com/Flowduino/ESPressio-Security.git#feature/observable-callback-coverage
+    flowduino/ESPressio-Observable@^3.0.1
+```
+
+The 0.2.0 host-test suite includes dedicated observable lifecycle coverage. See [CHANGELOG.md](CHANGELOG.md) for the complete 0.2.0 change list.
+
 ## Latest Stable Version
 
 ESPressio Security is currently **0.1.0**.
@@ -39,7 +57,7 @@ See [LICENSE](LICENSE) for details.
 
 ## ESPressio Library Dependencies
 
-ESPressio Security has **no required ESPressio dependencies**.
+ESPressio Security has **no required ESPressio dependencies** in the stable 0.1.0 release. **The 0.2.0 development branch adds ESPressio Observable >= 3.0.1 and < 4.0.0 as a required dependency**, as described in the development update above.
 
 It is intentionally foundational and transport-neutral. Concrete communication libraries should depend optionally on Security, rather than Security depending on them:
 
@@ -49,7 +67,7 @@ ESPressio Sockets  - - -> ESPressio Security
 future transports  - - -> ESPressio Security
 ```
 
-Event, Command and Timing do not need to depend directly on Security merely because their messages may be transported securely.
+Event, Command and Timing do not need to depend directly on Security merely because their messages may be transported securely. ESPressio Event 5.8.0's Security bridge remains opt-in.
 
 See [ESPRESSIO_DEPENDENCY_CHART.md](ESPRESSIO_DEPENDENCY_CHART.md).
 
@@ -73,10 +91,11 @@ Principal public types include:
 - `ReplayWindow` — per-sender/per-key/per-session sliding replay detector.
 - `ITransportSecurityCarrier` — minimal concrete-transport adapter contract.
 - `SecureTransportDecorator` — generic secure wrapper for a carrier.
+- `ITransportSecurityObserver` — 0.2.0 synchronous observer for externally meaningful Security lifecycle changes.
 
 ## PlatformIO
 
-Add the published library with:
+For the stable 0.1.0 release:
 
 ```ini
 lib_deps =
@@ -88,6 +107,8 @@ build_flags =
 build_unflags =
     -std=gnu++11
 ```
+
+For the 0.2.0 release generation, add ESPressio Observable 3.x as shown in the development update above.
 
 To deliberately consume the current repository instead of a release:
 
@@ -136,7 +157,7 @@ Algorithms are resolved through `AeadCipherRegistry`, allowing new implementatio
 
 ## Included AEAD Implementations
 
-When supported by the platform's mbedTLS build, 0.1.0 provides:
+When supported by the platform's mbedTLS build, Security provides:
 
 | Algorithm | Key | Nonce | Tag | Class |
 | --- | ---: | ---: | ---: | --- |
@@ -220,6 +241,33 @@ boot B: sender X / session B / sequence 1, 2, 3 ...
 
 The restarted sequence is accepted because session B is a distinct authenticated replay domain; replaying either session's already-seen packets is still rejected.
 
+## Observable Security Lifecycle (0.2.0)
+
+`TransportSecurity` now accepts `ITransportSecurityObserver` registrations:
+
+```cpp
+class SecurityObserver final :
+    public ESPressio::Security::ITransportSecurityObserver {
+public:
+    void OnTransportSecuritySessionEstablished(uint64_t sessionID) override {
+        // Session lifecycle observation.
+    }
+
+    void OnTransportSecurityFailure(
+        const ESPressio::Security::SecurityResult& result
+    ) override {
+        // Diagnostics / metrics / audit handling.
+    }
+};
+
+SecurityObserver observer;
+auto observerHandle = security.RegisterObserver(&observer);
+```
+
+The observer surface supplements rather than replaces `SecurityResult`. Observer exceptions are isolated from Security processing so a diagnostics consumer cannot interrupt a cryptographic state transition.
+
+When ESPressio Event 5.8.0 is selected, `ESPressio_TransportSecurityEventBridge.hpp` converts the same observations into asynchronous Event instances without changing Security's dependency direction.
+
 ## Protecting a Payload
 
 ```cpp
@@ -292,7 +340,7 @@ Example keys are demonstration-only. Do not copy hard-coded example key material
 
 Host-side CMake/CTest coverage uses a deterministic **test-only** AEAD implementation contained exclusively under `tests/`.
 
-Coverage includes protect/open round trips, authenticated metadata, ciphertext/tag/header/session tampering, protocol binding, replay rejection, in-window reordering, sender reboot/session rollover, explicit and automatically generated sessions, key rotation, Required/Preferred/Disabled policy behavior, malformed envelopes, payload limits and generic decorator flow.
+Coverage includes protect/open round trips, authenticated metadata, ciphertext/tag/header/session tampering, protocol binding, replay rejection, in-window reordering, sender reboot/session rollover, explicit and automatically generated sessions, key rotation, Required/Preferred/Disabled policy behavior, malformed envelopes, payload limits, generic decorator flow, and 0.2.0 observable lifecycle behavior.
 
 A separate production-cipher contract target instantiates all included mbedTLS-backed cipher classes against API-compatible host stubs. GitHub Actions also compile the ESP32 examples so the actual Arduino-ESP32 mbedTLS API surface is validated in addition to host abstraction tests.
 
