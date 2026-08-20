@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#define MBEDTLS_CHACHAPOLY_C 1
 typedef struct { int dummy; } mbedtls_chachapoly_context;
 inline void mbedtls_chachapoly_init(mbedtls_chachapoly_context*){}
 inline void mbedtls_chachapoly_free(mbedtls_chachapoly_context*){}
