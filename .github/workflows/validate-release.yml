@@ -51,4 +51,4 @@ jobs:
           git commit -m "chore: record Security 0.1.0 validation" || true
           git push origin HEAD:main
 
-# final validation after session-epoch and mbedTLS availability fixes
+# final validation after all 0.1.0 fixes
