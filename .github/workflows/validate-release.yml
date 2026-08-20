@@ -39,6 +39,7 @@ jobs:
             echo "platformio_install_exit=$pi"
             echo "basic_example_exit=$pb"
             echo "algorithms_example_exit=$pa"
+            echo "--- HOST BUILD ---"; cat host-build.log
             echo "--- HOST TEST ---"; cat host-test.log
             echo "--- BASIC EXAMPLE ---"; cat basic.log
             echo "--- ALGORITHMS EXAMPLE ---"; cat algorithms.log
@@ -50,4 +51,4 @@ jobs:
           git commit -m "chore: record Security 0.1.0 validation" || true
           git push origin HEAD:main
 
-# session-aware final validation trigger
+# final validation after session-epoch and mbedTLS availability fixes
