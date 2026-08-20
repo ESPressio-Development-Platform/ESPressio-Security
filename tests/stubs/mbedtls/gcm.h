@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#define MBEDTLS_GCM_C 1
 #define MBEDTLS_CIPHER_ID_AES 1
 #define MBEDTLS_GCM_ENCRYPT 1
 typedef struct { int dummy; } mbedtls_gcm_context;
