@@ -49,3 +49,5 @@ jobs:
           git add -- .ci/security-0.1.0-validation.txt
           git commit -m "chore: record Security 0.1.0 validation" || true
           git push origin HEAD:main
+
+# final validation trigger
