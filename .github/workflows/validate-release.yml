@@ -50,4 +50,4 @@ jobs:
           git commit -m "chore: record Security 0.1.0 validation" || true
           git push origin HEAD:main
 
-# final validation trigger
+# session-aware final validation trigger
