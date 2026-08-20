@@ -2,6 +2,19 @@
 
 All notable changes to ESPressio Security are documented in this file.
 
+## [0.2.0] - 2026-08-20
+
+### Added
+
+- Added `ITransportSecurityObserver` for externally meaningful transport-security lifecycle notifications.
+- Added observable notifications for configuration changes, security-session reset/establishment, replay-protection reset, and security failures.
+- Added ESPressio Observable as the foundational observer dependency.
+- Added optional ESPressio Event bridge support through ESPressio Event 5.8.0.
+
+### Changed
+
+- Security failure paths now publish observer notifications without changing existing return-value semantics.
+
 ## [0.1.0] - 2026-08-20
 
 ### Added
