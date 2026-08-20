@@ -42,7 +42,12 @@ jobs:
           platform = espressif32
           board = esp32dev
           framework = arduino
-          build_unflags = -std=gnu++11
+          build_flags =
+              -std=gnu++17
+              -frtti
+          build_unflags =
+              -std=gnu++11
+              -fno-rtti
           lib_deps =
               ESPressio-Security
               ESPressio-Observable
