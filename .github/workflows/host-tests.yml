@@ -1,0 +1,40 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S tests -B build
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  esp32-examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PlatformIO
+        run: pip install platformio
+      - name: Compile BasicSecurePayload
+        run: >-
+          pio ci examples/BasicSecurePayload/BasicSecurePayload.ino
+          --board esp32dev
+          --lib .
+          --project-option="build_flags=-std=gnu++17"
+          --project-option="build_unflags=-std=gnu++11"
+      - name: Compile MbedTLSAlgorithms
+        run: >-
+          pio ci examples/MbedTLSAlgorithms/MbedTLSAlgorithms.ino
+          --board esp32dev
+          --lib .
+          --project-option="build_flags=-std=gnu++17"
+          --project-option="build_unflags=-std=gnu++11"
