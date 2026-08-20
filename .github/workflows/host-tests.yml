@@ -34,10 +34,10 @@ jobs:
       - name: Create PlatformIO consumer project
         shell: bash
         run: |
-          mkdir -p ci-project/src ci-project/lib
-          cp -R . ci-project/lib/ESPressio-Security
-          cp -R deps/ESPressio-Observable ci-project/lib/ESPressio-Observable
-          cat > ci-project/platformio.ini <<'EOF'
+          mkdir -p "$RUNNER_TEMP/espressio-security-ci/src" "$RUNNER_TEMP/espressio-security-ci/lib"
+          rsync -a --exclude='.git' --exclude='deps' --exclude='build' ./ "$RUNNER_TEMP/espressio-security-ci/lib/ESPressio-Security/"
+          cp -R deps/ESPressio-Observable "$RUNNER_TEMP/espressio-security-ci/lib/ESPressio-Observable"
+          cat > "$RUNNER_TEMP/espressio-security-ci/platformio.ini" <<'EOF'
           [env:esp32dev]
           platform = espressif32
           board = esp32dev
@@ -50,11 +50,11 @@ jobs:
       - name: Compile BasicSecurePayload
         shell: bash
         run: |
-          cp examples/BasicSecurePayload/BasicSecurePayload.ino ci-project/src/main.cpp
-          pio run -d ci-project
+          cp examples/BasicSecurePayload/BasicSecurePayload.ino "$RUNNER_TEMP/espressio-security-ci/src/main.cpp"
+          pio run -d "$RUNNER_TEMP/espressio-security-ci"
       - name: Compile MbedTLSAlgorithms
         shell: bash
         run: |
-          rm -rf ci-project/.pio
-          cp examples/MbedTLSAlgorithms/MbedTLSAlgorithms.ino ci-project/src/main.cpp
-          pio run -d ci-project
+          rm -rf "$RUNNER_TEMP/espressio-security-ci/.pio"
+          cp examples/MbedTLSAlgorithms/MbedTLSAlgorithms.ino "$RUNNER_TEMP/espressio-security-ci/src/main.cpp"
+          pio run -d "$RUNNER_TEMP/espressio-security-ci"
