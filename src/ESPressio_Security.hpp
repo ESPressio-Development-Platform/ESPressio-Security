@@ -7,6 +7,7 @@
 #include "ESPressio_StaticKeyProvider.hpp"
 #include "ESPressio_IRandomSource.hpp"
 #include "ESPressio_ReplayWindow.hpp"
+#include "ESPressio_ITransportSecurityObserver.hpp"
 #include "ESPressio_TransportSecurity.hpp"
 #include "ESPressio_ISecureTransportCarrier.hpp"
 #include "ESPressio_SecureTransportDecorator.hpp"
