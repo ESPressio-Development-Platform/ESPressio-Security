@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.16)
+project(ESPressioSecurity LANGUAGES CXX)
+add_library(ESPressioSecurity INTERFACE)
+target_include_directories(ESPressioSecurity INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_features(ESPressioSecurity INTERFACE cxx_std_17)
