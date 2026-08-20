@@ -6,22 +6,34 @@
 #include "ESPressio_IAeadCipher.hpp"
 
 #if __has_include(<mbedtls/gcm.h>)
-#define ESPRESSIO_SECURITY_HAS_MBEDTLS_GCM 1
 #include <mbedtls/gcm.h>
+#if defined(MBEDTLS_GCM_C)
+#define ESPRESSIO_SECURITY_HAS_MBEDTLS_GCM 1
+#else
+#define ESPRESSIO_SECURITY_HAS_MBEDTLS_GCM 0
+#endif
 #else
 #define ESPRESSIO_SECURITY_HAS_MBEDTLS_GCM 0
 #endif
 
 #if __has_include(<mbedtls/ccm.h>)
-#define ESPRESSIO_SECURITY_HAS_MBEDTLS_CCM 1
 #include <mbedtls/ccm.h>
+#if defined(MBEDTLS_CCM_C)
+#define ESPRESSIO_SECURITY_HAS_MBEDTLS_CCM 1
+#else
+#define ESPRESSIO_SECURITY_HAS_MBEDTLS_CCM 0
+#endif
 #else
 #define ESPRESSIO_SECURITY_HAS_MBEDTLS_CCM 0
 #endif
 
 #if __has_include(<mbedtls/chachapoly.h>)
-#define ESPRESSIO_SECURITY_HAS_MBEDTLS_CHACHAPOLY 1
 #include <mbedtls/chachapoly.h>
+#if defined(MBEDTLS_CHACHAPOLY_C)
+#define ESPRESSIO_SECURITY_HAS_MBEDTLS_CHACHAPOLY 1
+#else
+#define ESPRESSIO_SECURITY_HAS_MBEDTLS_CHACHAPOLY 0
+#endif
 #else
 #define ESPRESSIO_SECURITY_HAS_MBEDTLS_CHACHAPOLY 0
 #endif
