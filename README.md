@@ -39,15 +39,9 @@ See [LICENSE](LICENSE) for details.
 
 ## ESPressio Library Dependencies
 
-ESPressio is designed as a modular ecosystem of independently useful libraries, with required dependencies kept explicit and optional integrations introduced only when corresponding functionality is selected.
+ESPressio Security has **no required ESPressio dependencies**.
 
-For the Security-specific relationship, see [ESPRESSIO_DEPENDENCY_CHART.md](ESPRESSIO_DEPENDENCY_CHART.md).
-
-### Required ESPressio dependencies
-
-**None.**
-
-ESPressio Security is intentionally foundational and transport-neutral. Concrete communication libraries should depend optionally on Security, rather than Security depending on them:
+It is intentionally foundational and transport-neutral. Concrete communication libraries should depend optionally on Security, rather than Security depending on them:
 
 ```text
 ESPressio ESP-Now  - - -> ESPressio Security
@@ -56,6 +50,8 @@ future transports  - - -> ESPressio Security
 ```
 
 Event, Command and Timing do not need to depend directly on Security merely because their messages may be transported securely.
+
+See [ESPRESSIO_DEPENDENCY_CHART.md](ESPRESSIO_DEPENDENCY_CHART.md).
 
 ## Namespace
 
@@ -74,7 +70,7 @@ Principal public types include:
 - `IRandomSource` — random-byte abstraction.
 - `ESP32RandomSource` — ESP32 platform random source.
 - `TransportSecurity` — protects and authenticates opaque protocol payloads.
-- `ReplayWindow` — per-sender/per-key sliding replay detector.
+- `ReplayWindow` — per-sender/per-key/per-session sliding replay detector.
 - `ITransportSecurityCarrier` — minimal concrete-transport adapter contract.
 - `SecureTransportDecorator` — generic secure wrapper for a carrier.
 
@@ -127,26 +123,14 @@ When `TransportSecurityPolicy::Required` is selected and a production AEAD imple
 - **Integrity** — modified ciphertext or authenticated metadata is rejected.
 - **Authentication** — only a holder of valid key material can generate an accepted protected packet.
 - **Protocol binding** — the protocol identifier is authenticated and cannot be relabelled without invalidating the packet.
-- **Replay protection** — previously authenticated sequences are rejected per sender/key replay window.
+- **Replay protection** — previously authenticated sequences are rejected independently per sender, key and authenticated sender session.
+- **Reboot-safe sequence restart** — a sender can start its sequence again at `1` after reboot because a fresh authenticated session/epoch ID creates a new replay domain.
 
 No plaintext is delivered to the protocol consumer until authentication/decryption succeeds.
 
 ## AEAD Algorithm Abstraction
 
 Encryption is deliberately represented by `IAeadCipher`. `TransportSecurity` contains no AES-, CCM-, GCM- or ChaCha-specific logic.
-
-```cpp
-class IAeadCipher {
-public:
-    virtual AeadAlgorithm Algorithm() const noexcept = 0;
-    virtual const char* Name() const noexcept = 0;
-    virtual std::size_t KeySize() const noexcept = 0;
-    virtual std::size_t NonceSize() const noexcept = 0;
-    virtual std::size_t TagSize() const noexcept = 0;
-    virtual bool Seal(...) = 0;
-    virtual bool Open(...) = 0;
-};
-```
 
 Algorithms are resolved through `AeadCipherRegistry`, allowing new implementations without changing the transport-security processor and allowing receivers to support multiple algorithms concurrently during migration.
 
@@ -178,13 +162,14 @@ flags
 protocol ID
 key ID
 sender ID
+session / epoch ID
 sequence
 nonce length
 tag length
 ciphertext length
 ```
 
-The protocol ID is AEAD associated data. A valid encrypted Event packet therefore cannot be relabelled as a Command packet without authentication failure. The envelope carries **key IDs, never keys**.
+The fixed header is AEAD associated authenticated data. A valid encrypted Event packet therefore cannot be relabelled as a Command packet, assigned to another sender session, or have its sequence changed without authentication failure. The envelope carries **key IDs, never keys**.
 
 ## Security Policies
 
@@ -204,19 +189,36 @@ Multiple key IDs can coexist, allowing receivers to accept an old and new key du
 
 Production systems are encouraged to implement `IKeyProvider` using an appropriate secure provisioning/storage strategy rather than hard-coding secrets into source code. `StaticKeyProvider` performs best-effort in-memory erasure on removal/destruction but cannot guarantee that no historical compiler/platform copy exists elsewhere in memory.
 
-## Randomness and Nonces
+## Randomness, Nonces and Session IDs
 
-`IRandomSource` abstracts nonce randomness. On ESP32, use `ESP32RandomSource`, which uses the ESP platform random facility.
+`IRandomSource` abstracts cryptographic randomness. On ESP32, use `ESP32RandomSource`, which uses the ESP platform random facility.
 
 `StandardRandomSource` exists for portable/host use. `std::random_device` quality is implementation-dependent and should not be assumed to provide production embedded cryptographic entropy on every platform.
 
-Each protected packet carries its nonce explicitly. AEAD nonce uniqueness for a given key remains security-critical.
+Each protected packet carries a nonce explicitly. AEAD nonce uniqueness for a given key remains security-critical.
+
+`TransportSecurityConfig::SessionID` defaults to zero. On the first protected transmission, `TransportSecurity` then generates a fresh non-zero 64-bit session ID from `IRandomSource`. The generated value remains stable for that `TransportSecurity` session and is exposed through `GetSessionID()` for diagnostics/identity correlation.
+
+Applications that manage epochs externally may supply a non-zero `SessionID` explicitly. Calling `SetConfig()` resets the outbound sequence and replay state; a zero `SessionID` causes a new automatic session to be generated on the next protected send.
 
 ## Replay Protection
 
-Each authenticated envelope contains a non-zero 64-bit sequence number. `ReplayWindow` tracks sequences independently by `sender ID + key ID`.
+Each authenticated envelope contains a non-zero 64-bit session ID and sequence number. `ReplayWindow` tracks sequences independently by:
 
-A sliding window permits limited legitimate reordering while rejecting duplicates and stale packets. Replay state is committed **only after successful AEAD authentication and protocol validation**, preventing unauthenticated forged high sequence numbers from advancing receiver state.
+```text
+sender ID + key ID + session ID
+```
+
+A sliding window permits limited legitimate reordering while rejecting duplicates and stale packets within that session. Replay state is committed **only after successful AEAD authentication and protocol validation**, preventing unauthenticated forged high sequence numbers from advancing receiver state.
+
+This solves the sender-reboot case cleanly:
+
+```text
+boot A: sender X / session A / sequence 1, 2, 3 ...
+boot B: sender X / session B / sequence 1, 2, 3 ...
+```
+
+The restarted sequence is accepted because session B is a distinct authenticated replay domain; replaying either session's already-seen packets is still rejected.
 
 ## Protecting a Payload
 
@@ -239,6 +241,7 @@ config.Policy = TransportSecurityPolicy::Required;
 config.OutboundAlgorithm = AeadAlgorithm::AES256GCM;
 config.OutboundKeyID = 1;
 config.SenderID = ESP.getEfuseMac();
+config.SessionID = 0; // automatically generate a fresh sender epoch
 
 TransportSecurity security(ciphers, keys, random, config);
 std::vector<uint8_t> protectedBytes;
@@ -262,7 +265,7 @@ if (!result.Success) {
 // protocol binding and replay checks.
 ```
 
-Authenticated sender, key and sequence metadata is available without exposing the secret key.
+Authenticated sender, key, session and sequence metadata is available without exposing the secret key.
 
 ## Generic Secure Transport Decorator
 
@@ -274,11 +277,13 @@ SecureTransportDecorator secureCarrier(carrier, security);
 
 The decorator calls its application receiver only with data accepted by `TransportSecurity`. This is the intended integration point for ESPressio ESP-Now, ESPressio Sockets and future transports.
 
+See [TRANSPORT_SECURITY.md](TRANSPORT_SECURITY.md) for the wire format and downstream-integration details.
+
 ## Examples
 
 The repository includes:
 
-- `examples/BasicSecurePayload` — AES-256-GCM registration, key provisioning, ESP32 nonce generation, protect/open flow.
+- `examples/BasicSecurePayload` — AES-256-GCM registration, key provisioning, automatic session generation, ESP32 nonce generation, protect/open flow.
 - `examples/MbedTLSAlgorithms` — compile-time discovery and registration of available mbedTLS-backed AEAD implementations.
 
 Example keys are demonstration-only. Do not copy hard-coded example key material into production firmware.
@@ -287,9 +292,9 @@ Example keys are demonstration-only. Do not copy hard-coded example key material
 
 Host-side CMake/CTest coverage uses a deterministic **test-only** AEAD implementation contained exclusively under `tests/`.
 
-Coverage includes protect/open round trips, authenticated metadata, ciphertext/tag/header tampering, protocol binding, replay rejection, in-window reordering, key rotation, Required/Preferred/Disabled policy behavior, malformed envelopes, payload limits and generic decorator flow.
+Coverage includes protect/open round trips, authenticated metadata, ciphertext/tag/header/session tampering, protocol binding, replay rejection, in-window reordering, sender reboot/session rollover, explicit and automatically generated sessions, key rotation, Required/Preferred/Disabled policy behavior, malformed envelopes, payload limits and generic decorator flow.
 
-GitHub Actions also compiles the ESP32 examples so the actual Arduino-ESP32 mbedTLS API surface is validated in addition to host abstraction tests.
+A separate production-cipher contract target instantiates all included mbedTLS-backed cipher classes against API-compatible host stubs. GitHub Actions also compile the ESP32 examples so the actual Arduino-ESP32 mbedTLS API surface is validated in addition to host abstraction tests.
 
 ## Security Considerations
 
@@ -299,9 +304,11 @@ Do not log, serialize or expose key material. ESPressio Security APIs intentiona
 
 `Preferred` permits plaintext and must not be used where plaintext acceptance is unacceptable. Transport authentication also does not automatically authorize *what* an authenticated device may do; Command authorization/policy remains a separate application concern.
 
+If an application explicitly supplies session IDs rather than allowing automatic generation, it must not reuse a session ID with a restarted sequence while receivers may still retain replay state for that same sender/key/session domain.
+
 ## Future Direction
 
-Potential extensions include secure ESP32 NVS key providers, key derivation/provider integrations, signed identity/provisioning workflows, group/per-peer key management helpers, explicit key-expiry/rotation policy, persistent replay epochs/counters, hardware-backed keys, and downstream secure adapters for ESPressio ESP-Now and ESPressio Sockets.
+Potential extensions include secure ESP32 NVS key providers, key derivation/provider integrations, signed identity/provisioning workflows, group/per-peer key management helpers, explicit key-expiry/rotation policy, bounded/persistent replay-state strategies, hardware-backed keys, and downstream secure adapters for ESPressio ESP-Now and ESPressio Sockets.
 
 ## Contributing
 
@@ -310,9 +317,3 @@ Issues and contributions are welcome through the ESPressio Security GitHub repos
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for release history and notable changes.
-
-## License
-
-ESPressio and its component libraries are licensed under the **Apache License 2.0**.
-
-See [LICENSE](LICENSE) for details.
