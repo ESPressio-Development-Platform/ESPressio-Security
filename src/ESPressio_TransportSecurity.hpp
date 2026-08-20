@@ -18,13 +18,27 @@ class TransportSecurity final {
 public:
     static constexpr uint32_t EnvelopeMagic = 0x53505345u;
     static constexpr uint8_t EnvelopeVersion = 1;
-    static constexpr std::size_t FixedHeaderSize = 36;
+    static constexpr std::size_t FixedHeaderSize = 44;
 
     TransportSecurity(AeadCipherRegistry& ciphers, const IKeyProvider& keys, IRandomSource& random, TransportSecurityConfig config = {})
-        : _ciphers(ciphers), _keys(keys), _random(random), _config(std::move(config)), _replay(_config.ReplayWindowSize) {}
+        : _ciphers(ciphers), _keys(keys), _random(random), _config(std::move(config)), _replay(_config.ReplayWindowSize) {
+        if (_config.SessionID != 0) {
+            _sessionID = _config.SessionID;
+            _sessionReady = true;
+        }
+    }
 
     const TransportSecurityConfig& GetConfig() const noexcept { return _config; }
-    void SetConfig(TransportSecurityConfig config) { _config = std::move(config); _replay = ReplayWindow(_config.ReplayWindowSize); _nextSequence = 1; }
+    uint64_t GetSessionID() const noexcept { return _sessionID; }
+
+    void SetConfig(TransportSecurityConfig config) {
+        _config = std::move(config);
+        _replay = ReplayWindow(_config.ReplayWindowSize);
+        _nextSequence = 1;
+        _sessionID = _config.SessionID;
+        _sessionReady = _sessionID != 0;
+    }
+
     void ResetReplayProtection() { _replay.Reset(); }
 
     SecurityResult Protect(uint8_t protocol, const uint8_t* plaintext, std::size_t plaintextSize, std::vector<uint8_t>& output) {
@@ -54,9 +68,13 @@ public:
             SecureErase(key.Bytes);
             return SecurityResult::Fail(SecurityError::InvalidKeyLength, "Outbound key length does not match AEAD algorithm");
         }
+        if (!EnsureSessionID()) {
+            SecureErase(key.Bytes);
+            return SecurityResult::Fail(SecurityError::RandomFailure, "Transport security session ID generation failed");
+        }
         if (_nextSequence == 0 || _nextSequence == std::numeric_limits<uint64_t>::max()) {
             SecureErase(key.Bytes);
-            return SecurityResult::Fail(SecurityError::SequenceExhausted, "Outbound sequence exhausted; rotate key/session before continuing");
+            return SecurityResult::Fail(SecurityError::SequenceExhausted, "Outbound sequence exhausted; establish a new session before continuing");
         }
 
         const uint64_t sequence = _nextSequence++;
@@ -75,6 +93,7 @@ public:
         header.push_back(protocol);
         Append32(header, _config.OutboundKeyID);
         Append64(header, _config.SenderID);
+        Append64(header, _sessionID);
         Append64(header, sequence);
         header.push_back(static_cast<uint8_t>(nonce.size()));
         header.push_back(static_cast<uint8_t>(cipher->TagSize()));
@@ -111,12 +130,16 @@ public:
         }
         if (inputSize < FixedHeaderSize) return SecurityResult::Fail(SecurityError::MalformedEnvelope, "Transport security envelope is truncated");
 
-        std::size_t offset = 0; uint32_t magic=0,keyID=0,ciphertextLength=0; uint64_t senderID=0,sequence=0; uint16_t reserved=0;
-        uint8_t version=0,algorithmRaw=0,flags=0,protocol=0,nonceLength=0,tagLength=0;
+        std::size_t offset = 0;
+        uint32_t magic = 0, keyID = 0, ciphertextLength = 0;
+        uint64_t senderID = 0, sessionID = 0, sequence = 0;
+        uint16_t reserved = 0;
+        uint8_t version = 0, algorithmRaw = 0, flags = 0, protocol = 0, nonceLength = 0, tagLength = 0;
         if (!Read32(input,inputSize,offset,magic)||!Read8(input,inputSize,offset,version)||!Read8(input,inputSize,offset,algorithmRaw)||
             !Read8(input,inputSize,offset,flags)||!Read8(input,inputSize,offset,protocol)||!Read32(input,inputSize,offset,keyID)||
-            !Read64(input,inputSize,offset,senderID)||!Read64(input,inputSize,offset,sequence)||!Read8(input,inputSize,offset,nonceLength)||
-            !Read8(input,inputSize,offset,tagLength)||!Read16(input,inputSize,offset,reserved)||!Read32(input,inputSize,offset,ciphertextLength))
+            !Read64(input,inputSize,offset,senderID)||!Read64(input,inputSize,offset,sessionID)||!Read64(input,inputSize,offset,sequence)||
+            !Read8(input,inputSize,offset,nonceLength)||!Read8(input,inputSize,offset,tagLength)||!Read16(input,inputSize,offset,reserved)||
+            !Read32(input,inputSize,offset,ciphertextLength))
             return SecurityResult::Fail(SecurityError::MalformedEnvelope, "Transport security header is malformed");
         (void)flags; (void)reserved;
         if (magic != EnvelopeMagic || version != EnvelopeVersion)
@@ -124,30 +147,39 @@ public:
                 version != EnvelopeVersion ? "Unsupported transport security envelope version" : "Invalid transport security envelope magic");
         if (ciphertextLength > _config.MaximumPlaintextBytes) return SecurityResult::Fail(SecurityError::BufferLimitExceeded, "Protected payload exceeds configured limit");
         const std::size_t expectedSize = FixedHeaderSize + nonceLength + ciphertextLength + tagLength;
-        if (expectedSize != inputSize || sequence == 0 || keyID == 0)
-            return SecurityResult::Fail(SecurityError::MalformedEnvelope, "Transport security envelope lengths are inconsistent");
+        if (expectedSize != inputSize || sessionID == 0 || sequence == 0 || keyID == 0)
+            return SecurityResult::Fail(SecurityError::MalformedEnvelope, "Transport security envelope lengths or identifiers are inconsistent");
 
         const AeadAlgorithm algorithm = static_cast<AeadAlgorithm>(algorithmRaw);
         IAeadCipher* cipher = _ciphers.Find(algorithm);
         if (cipher == nullptr) return SecurityResult::Fail(SecurityError::UnsupportedAlgorithm, "Inbound AEAD algorithm is not registered");
         if (nonceLength != cipher->NonceSize() || tagLength != cipher->TagSize())
             return SecurityResult::Fail(SecurityError::MalformedEnvelope, "Nonce/tag size does not match AEAD algorithm");
-        if (!_replay.WouldAccept(senderID,keyID,sequence))
+        if (!_replay.WouldAccept(senderID, keyID, sessionID, sequence))
             return SecurityResult::Fail(SecurityError::ReplayDetected, "Replay or stale protected transport payload rejected");
 
         KeyMaterial key;
         if (!_keys.GetKey(keyID,algorithm,key)) return SecurityResult::Fail(SecurityError::MissingKey, "Inbound key is unavailable");
         if (key.Bytes.size()!=cipher->KeySize()) { SecureErase(key.Bytes); return SecurityResult::Fail(SecurityError::InvalidKeyLength, "Inbound key length does not match AEAD algorithm"); }
 
-        const uint8_t* nonce=input+FixedHeaderSize; const uint8_t* ciphertext=nonce+nonceLength; const uint8_t* tag=ciphertext+ciphertextLength;
+        const uint8_t* nonce=input+FixedHeaderSize;
+        const uint8_t* ciphertext=nonce+nonceLength;
+        const uint8_t* tag=ciphertext+ciphertextLength;
         std::vector<uint8_t> plaintext;
         const bool authenticated=cipher->Open(key.Bytes.data(),key.Bytes.size(),nonce,nonceLength,input,FixedHeaderSize,ciphertext,ciphertextLength,tag,tagLength,plaintext);
         SecureErase(key.Bytes);
         if (!authenticated) { SecureErase(plaintext); return SecurityResult::Fail(SecurityError::AuthenticationFailed, "AEAD authentication/decryption failed"); }
         if (protocol != expectedProtocol) { SecureErase(plaintext); return SecurityResult::Fail(SecurityError::ProtocolMismatch, "Authenticated payload protocol does not match expected transport protocol"); }
 
-        _replay.Commit(senderID,keyID,sequence);
-        output.Protocol=protocol; output.KeyID=keyID; output.SenderID=senderID; output.Sequence=sequence; output.Algorithm=algorithm; output.Protected=true; output.Data=std::move(plaintext);
+        _replay.Commit(senderID, keyID, sessionID, sequence);
+        output.Protocol=protocol;
+        output.KeyID=keyID;
+        output.SenderID=senderID;
+        output.SessionID=sessionID;
+        output.Sequence=sequence;
+        output.Algorithm=algorithm;
+        output.Protected=true;
+        output.Data=std::move(plaintext);
         return SecurityResult::Ok(true);
     }
 
@@ -158,7 +190,35 @@ public:
     }
 
 private:
-    AeadCipherRegistry& _ciphers; const IKeyProvider& _keys; IRandomSource& _random; TransportSecurityConfig _config; ReplayWindow _replay; uint64_t _nextSequence=1;
+    AeadCipherRegistry& _ciphers;
+    const IKeyProvider& _keys;
+    IRandomSource& _random;
+    TransportSecurityConfig _config;
+    ReplayWindow _replay;
+    uint64_t _sessionID = 0;
+    uint64_t _nextSequence = 1;
+    bool _sessionReady = false;
+
+    bool EnsureSessionID() {
+        if (_sessionReady) return true;
+        if (_config.SessionID != 0) {
+            _sessionID = _config.SessionID;
+            _sessionReady = true;
+            return true;
+        }
+
+        for (unsigned attempt = 0; attempt < 4; ++attempt) {
+            uint64_t candidate = 0;
+            if (!_random.Fill(reinterpret_cast<uint8_t*>(&candidate), sizeof(candidate))) return false;
+            if (candidate != 0) {
+                _sessionID = candidate;
+                _sessionReady = true;
+                return true;
+            }
+        }
+        return false;
+    }
+
     static void SecureErase(std::vector<uint8_t>& bytes) noexcept { volatile uint8_t* p=bytes.empty()?nullptr:bytes.data(); for(std::size_t i=0;p&&i<bytes.size();++i)p[i]=0; bytes.clear(); }
     static void Append16(std::vector<uint8_t>& o,uint16_t v){o.push_back(static_cast<uint8_t>(v));o.push_back(static_cast<uint8_t>(v>>8));}
     static void Append32(std::vector<uint8_t>& o,uint32_t v){for(int i=0;i<4;++i)o.push_back(static_cast<uint8_t>(v>>(i*8)));}
