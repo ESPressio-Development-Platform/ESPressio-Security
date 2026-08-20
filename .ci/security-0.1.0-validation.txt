@@ -3,7 +3,40 @@ host_build_exit=2
 host_test_exit=99
 platformio_install_exit=0
 basic_example_exit=0
-algorithms_example_exit=1
+algorithms_example_exit=0
+--- HOST BUILD ---
+[ 16%] Building CXX object CMakeFiles/SecureTransportDecorator.dir/test_decorator.cpp.o
+[ 33%] Building CXX object CMakeFiles/Security.dir/test_security.cpp.o
+[ 50%] Building CXX object CMakeFiles/MbedTLSCompile.dir/test_mbedtls_compile.cpp.o
+[ 66%] Linking CXX executable MbedTLSCompile
+[ 66%] Built target MbedTLSCompile
+/home/runner/work/ESPressio-Security/ESPressio-Security/tests/test_decorator.cpp: In member function ‘virtual std::size_t TinyCipher::KeySize() const’:
+/home/runner/work/ESPressio-Security/ESPressio-Security/tests/test_decorator.cpp:8:231: error: ‘return16’ was not declared in this scope
+    8 | class TinyCipher final:public IAeadCipher{public:AeadAlgorithm Algorithm()const noexcept override{return AeadAlgorithm::TestOnly;}const char*Name()const noexcept override{return"TEST";}std::size_t KeySize()const noexcept override{return16;}std::size_t NonceSize()const noexcept override{return12;}std::size_t TagSize()const noexcept override{return16;}bool Seal(const uint8_t*k,std::size_t ks,const uint8_t*n,std::size_t ns,const uint8_t*a,std::size_t as,const uint8_t*p,std::size_t ps,std::vector<uint8_t>&c,std::vector<uint8_t>&t)override{if(ks!=16||ns!=12)return false;c.assign(p,p+ps);for(std::size_t i=0;i<ps;++i)c[i]^=k[i%ks]^n[i%ns];uint8_t x=0;for(std::size_t i=0;i<as;++i)x^=a[i];for(auto b:c)x^=b;for(std::size_t i=0;i<ks;++i)x^=k[i];t.assign(16,x);return true;}bool Open(const uint8_t*k,std::size_t ks,const uint8_t*n,std::size_t ns,const uint8_t*a,std::size_t as,const uint8_t*c,std::size_t cs,const uint8_t*t,std::size_t ts,std::vector<uint8_t>&p)override{if(ks!=16||ns!=12||ts!=16)return false;uint8_t x=0;for(std::size_t i=0;i<as;++i)x^=a[i];for(std::size_t i=0;i<cs;++i)x^=c[i];for(std::size_t i=0;i<ks;++i)x^=k[i];uint8_t d=0;for(std::size_t i=0;i<ts;++i)d|=t[i]^x;if(d)return false;p.assign(c,c+cs);for(std::size_t i=0;i<cs;++i)p[i]^=k[i%ks]^n[i%ns];return true;}};
+      |                                                                                                                                                                                                                                       ^~~~~~~~
+/home/runner/work/ESPressio-Security/ESPressio-Security/tests/test_decorator.cpp:8:240: warning: no return statement in function returning non-void [-Wreturn-type]
+    8 | class TinyCipher final:public IAeadCipher{public:AeadAlgorithm Algorithm()const noexcept override{return AeadAlgorithm::TestOnly;}const char*Name()const noexcept override{return"TEST";}std::size_t KeySize()const noexcept override{return16;}std::size_t NonceSize()const noexcept override{return12;}std::size_t TagSize()const noexcept override{return16;}bool Seal(const uint8_t*k,std::size_t ks,const uint8_t*n,std::size_t ns,const uint8_t*a,std::size_t as,const uint8_t*p,std::size_t ps,std::vector<uint8_t>&c,std::vector<uint8_t>&t)override{if(ks!=16||ns!=12)return false;c.assign(p,p+ps);for(std::size_t i=0;i<ps;++i)c[i]^=k[i%ks]^n[i%ns];uint8_t x=0;for(std::size_t i=0;i<as;++i)x^=a[i];for(auto b:c)x^=b;for(std::size_t i=0;i<ks;++i)x^=k[i];t.assign(16,x);return true;}bool Open(const uint8_t*k,std::size_t ks,const uint8_t*n,std::size_t ns,const uint8_t*a,std::size_t as,const uint8_t*c,std::size_t cs,const uint8_t*t,std::size_t ts,std::vector<uint8_t>&p)override{if(ks!=16||ns!=12||ts!=16)return false;uint8_t x=0;for(std::size_t i=0;i<as;++i)x^=a[i];for(std::size_t i=0;i<cs;++i)x^=c[i];for(std::size_t i=0;i<ks;++i)x^=k[i];uint8_t d=0;for(std::size_t i=0;i<ts;++i)d|=t[i]^x;if(d)return false;p.assign(c,c+cs);for(std::size_t i=0;i<cs;++i)p[i]^=k[i%ks]^n[i%ns];return true;}};
+      |                                                                                                                                                                                                                                                ^
+/home/runner/work/ESPressio-Security/ESPressio-Security/tests/test_decorator.cpp: In member function ‘virtual std::size_t TinyCipher::NonceSize() const’:
+/home/runner/work/ESPressio-Security/ESPressio-Security/tests/test_decorator.cpp:8:288: error: ‘return12’ was not declared in this scope
+    8 | class TinyCipher final:public IAeadCipher{public:AeadAlgorithm Algorithm()const noexcept override{return AeadAlgorithm::TestOnly;}const char*Name()const noexcept override{return"TEST";}std::size_t KeySize()const noexcept override{return16;}std::size_t NonceSize()const noexcept override{return12;}std::size_t TagSize()const noexcept override{return16;}bool Seal(const uint8_t*k,std::size_t ks,const uint8_t*n,std::size_t ns,const uint8_t*a,std::size_t as,const uint8_t*p,std::size_t ps,std::vector<uint8_t>&c,std::vector<uint8_t>&t)override{if(ks!=16||ns!=12)return false;c.assign(p,p+ps);for(std::size_t i=0;i<ps;++i)c[i]^=k[i%ks]^n[i%ns];uint8_t x=0;for(std::size_t i=0;i<as;++i)x^=a[i];for(auto b:c)x^=b;for(std::size_t i=0;i<ks;++i)x^=k[i];t.assign(16,x);return true;}bool Open(const uint8_t*k,std::size_t ks,const uint8_t*n,std::size_t ns,const uint8_t*a,std::size_t as,const uint8_t*c,std::size_t cs,const uint8_t*t,std::size_t ts,std::vector<uint8_t>&p)override{if(ks!=16||ns!=12||ts!=16)return false;uint8_t x=0;for(std::size_t i=0;i<as;++i)x^=a[i];for(std::size_t i=0;i<cs;++i)x^=c[i];for(std::size_t i=0;i<ks;++i)x^=k[i];uint8_t d=0;for(std::size_t i=0;i<ts;++i)d|=t[i]^x;if(d)return false;p.assign(c,c+cs);for(std::size_t i=0;i<cs;++i)p[i]^=k[i%ks]^n[i%ns];return true;}};
+      |                                                                                                                                                                                                                                                                                                ^~~~~~~~
+/home/runner/work/ESPressio-Security/ESPressio-Security/tests/test_decorator.cpp:8:297: warning: no return statement in function returning non-void [-Wreturn-type]
+    8 | class TinyCipher final:public IAeadCipher{public:AeadAlgorithm Algorithm()const noexcept override{return AeadAlgorithm::TestOnly;}const char*Name()const noexcept override{return"TEST";}std::size_t KeySize()const noexcept override{return16;}std::size_t NonceSize()const noexcept override{return12;}std::size_t TagSize()const noexcept override{return16;}bool Seal(const uint8_t*k,std::size_t ks,const uint8_t*n,std::size_t ns,const uint8_t*a,std::size_t as,const uint8_t*p,std::size_t ps,std::vector<uint8_t>&c,std::vector<uint8_t>&t)override{if(ks!=16||ns!=12)return false;c.assign(p,p+ps);for(std::size_t i=0;i<ps;++i)c[i]^=k[i%ks]^n[i%ns];uint8_t x=0;for(std::size_t i=0;i<as;++i)x^=a[i];for(auto b:c)x^=b;for(std::size_t i=0;i<ks;++i)x^=k[i];t.assign(16,x);return true;}bool Open(const uint8_t*k,std::size_t ks,const uint8_t*n,std::size_t ns,const uint8_t*a,std::size_t as,const uint8_t*c,std::size_t cs,const uint8_t*t,std::size_t ts,std::vector<uint8_t>&p)override{if(ks!=16||ns!=12||ts!=16)return false;uint8_t x=0;for(std::size_t i=0;i<as;++i)x^=a[i];for(std::size_t i=0;i<cs;++i)x^=c[i];for(std::size_t i=0;i<ks;++i)x^=k[i];uint8_t d=0;for(std::size_t i=0;i<ts;++i)d|=t[i]^x;if(d)return false;p.assign(c,c+cs);for(std::size_t i=0;i<cs;++i)p[i]^=k[i%ks]^n[i%ns];return true;}};
+      |                                                                                                                                                                                                                                                                                                         ^
+/home/runner/work/ESPressio-Security/ESPressio-Security/tests/test_decorator.cpp: In member function ‘virtual std::size_t TinyCipher::TagSize() const’:
+/home/runner/work/ESPressio-Security/ESPressio-Security/tests/test_decorator.cpp:8:343: error: ‘return16’ was not declared in this scope
+    8 | class TinyCipher final:public IAeadCipher{public:AeadAlgorithm Algorithm()const noexcept override{return AeadAlgorithm::TestOnly;}const char*Name()const noexcept override{return"TEST";}std::size_t KeySize()const noexcept override{return16;}std::size_t NonceSize()const noexcept override{return12;}std::size_t TagSize()const noexcept override{return16;}bool Seal(const uint8_t*k,std::size_t ks,const uint8_t*n,std::size_t ns,const uint8_t*a,std::size_t as,const uint8_t*p,std::size_t ps,std::vector<uint8_t>&c,std::vector<uint8_t>&t)override{if(ks!=16||ns!=12)return false;c.assign(p,p+ps);for(std::size_t i=0;i<ps;++i)c[i]^=k[i%ks]^n[i%ns];uint8_t x=0;for(std::size_t i=0;i<as;++i)x^=a[i];for(auto b:c)x^=b;for(std::size_t i=0;i<ks;++i)x^=k[i];t.assign(16,x);return true;}bool Open(const uint8_t*k,std::size_t ks,const uint8_t*n,std::size_t ns,const uint8_t*a,std::size_t as,const uint8_t*c,std::size_t cs,const uint8_t*t,std::size_t ts,std::vector<uint8_t>&p)override{if(ks!=16||ns!=12||ts!=16)return false;uint8_t x=0;for(std::size_t i=0;i<as;++i)x^=a[i];for(std::size_t i=0;i<cs;++i)x^=c[i];for(std::size_t i=0;i<ks;++i)x^=k[i];uint8_t d=0;for(std::size_t i=0;i<ts;++i)d|=t[i]^x;if(d)return false;p.assign(c,c+cs);for(std::size_t i=0;i<cs;++i)p[i]^=k[i%ks]^n[i%ns];return true;}};
+      |                                                                                                                                                                                                                                                                                                                                                       ^~~~~~~~
+/home/runner/work/ESPressio-Security/ESPressio-Security/tests/test_decorator.cpp:8:352: warning: no return statement in function returning non-void [-Wreturn-type]
+    8 | class TinyCipher final:public IAeadCipher{public:AeadAlgorithm Algorithm()const noexcept override{return AeadAlgorithm::TestOnly;}const char*Name()const noexcept override{return"TEST";}std::size_t KeySize()const noexcept override{return16;}std::size_t NonceSize()const noexcept override{return12;}std::size_t TagSize()const noexcept override{return16;}bool Seal(const uint8_t*k,std::size_t ks,const uint8_t*n,std::size_t ns,const uint8_t*a,std::size_t as,const uint8_t*p,std::size_t ps,std::vector<uint8_t>&c,std::vector<uint8_t>&t)override{if(ks!=16||ns!=12)return false;c.assign(p,p+ps);for(std::size_t i=0;i<ps;++i)c[i]^=k[i%ks]^n[i%ns];uint8_t x=0;for(std::size_t i=0;i<as;++i)x^=a[i];for(auto b:c)x^=b;for(std::size_t i=0;i<ks;++i)x^=k[i];t.assign(16,x);return true;}bool Open(const uint8_t*k,std::size_t ks,const uint8_t*n,std::size_t ns,const uint8_t*a,std::size_t as,const uint8_t*c,std::size_t cs,const uint8_t*t,std::size_t ts,std::vector<uint8_t>&p)override{if(ks!=16||ns!=12||ts!=16)return false;uint8_t x=0;for(std::size_t i=0;i<as;++i)x^=a[i];for(std::size_t i=0;i<cs;++i)x^=c[i];for(std::size_t i=0;i<ks;++i)x^=k[i];uint8_t d=0;for(std::size_t i=0;i<ts;++i)d|=t[i]^x;if(d)return false;p.assign(c,c+cs);for(std::size_t i=0;i<cs;++i)p[i]^=k[i%ks]^n[i%ns];return true;}};
+      |                                                                                                                                                                                                                                                                                                                                                                ^
+gmake[2]: *** [CMakeFiles/SecureTransportDecorator.dir/build.make:79: CMakeFiles/SecureTransportDecorator.dir/test_decorator.cpp.o] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:125: CMakeFiles/SecureTransportDecorator.dir/all] Error 2
+gmake[1]: *** Waiting for unfinished jobs....
+[ 83%] Linking CXX executable Security
+[ 83%] Built target Security
+gmake: *** [Makefile:101: all] Error 2
 --- HOST TEST ---
 --- BASIC EXAMPLE ---
 ********************************************************************************
@@ -13,7 +46,7 @@ If you like PlatformIO, please:
 - try PlatformIO IDE for embedded development > https://platformio.org/platformio-ide
 ********************************************************************************
 
-The following files/directories have been created in /tmp/tmp6zouxorv
+The following files/directories have been created in /tmp/tmplvtnx61m
 include - Put project header files here
 lib - Put project specific (private) libraries here
 src - Put project source files here
@@ -53,21 +86,21 @@ Collecting bitarray<4.0,>=3.0.0 (from bitstring~=4.3.1)
 Collecting pycparser (from cffi>=1.14->cryptography~=45.0.3)
   Downloading pycparser-3.0-py3-none-any.whl.metadata (8.2 kB)
 Downloading cryptography-45.0.7-cp311-abi3-manylinux_2_34_x86_64.whl (4.5 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.5/4.5 MB 49.7 MB/s eta 0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.5/4.5 MB 67.8 MB/s eta 0:00:00
 Downloading ecdsa-0.19.2-py2.py3-none-any.whl (150 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 150.8/150.8 kB 2.4 MB/s eta 0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 150.8/150.8 kB 66.3 MB/s eta 0:00:00
 Downloading bitstring-4.3.1-py3-none-any.whl (71 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 71.9/71.9 kB 27.3 MB/s eta 0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 71.9/71.9 kB 31.9 MB/s eta 0:00:00
 Downloading reedsolo-1.7.0-py3-none-any.whl (32 kB)
 Downloading intelhex-2.3.0-py2.py3-none-any.whl (50 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 50.9/50.9 kB 22.2 MB/s eta 0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 50.9/50.9 kB 22.8 MB/s eta 0:00:00
 Downloading bitarray-3.10.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (373 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 373.7/373.7 kB 124.6 MB/s eta 0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 373.7/373.7 kB 74.5 MB/s eta 0:00:00
 Downloading cffi-2.1.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (221 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 221.8/221.8 kB 17.3 MB/s eta 0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 221.8/221.8 kB 86.4 MB/s eta 0:00:00
 Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
 Downloading pycparser-3.0-py3-none-any.whl (48 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 48.2/48.2 kB 21.1 MB/s eta 0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 48.2/48.2 kB 21.3 MB/s eta 0:00:00
 Installing collected packages: reedsolo, intelhex, six, pycparser, bitarray, ecdsa, cffi, bitstring, cryptography
 Successfully installed bitarray-3.10.1 bitstring-4.3.1 cffi-2.1.1 cryptography-45.0.7 ecdsa-0.19.2 intelhex-2.3.0 pycparser-3.0 reedsolo-1.7.0 six-1.17.0
 Tool Manager: tool-esptoolpy@2.41100.0 has been installed!
@@ -155,15 +188,15 @@ Retrieving maximum program size .pio/build/esp32dev/firmware.elf
 Checking size .pio/build/esp32dev/firmware.elf
 Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
 RAM:   [=         ]   6.6% (used 21716 bytes from 327680 bytes)
-Flash: [==        ]  22.4% (used 293329 bytes from 1310720 bytes)
+Flash: [==        ]  22.4% (used 293325 bytes from 1310720 bytes)
 Building .pio/build/esp32dev/firmware.bin
 esptool.py v4.11.0
 Creating esp32 image...
 Merged 2 ELF sections
 Successfully created esp32 image.
-========================= [SUCCESS] Took 6.59 seconds =========================
+========================= [SUCCESS] Took 8.04 seconds =========================
 --- ALGORITHMS EXAMPLE ---
-The following files/directories have been created in /tmp/tmpiocx1rf2
+The following files/directories have been created in /tmp/tmpsg117myf
 include - Put project header files here
 lib - Put project specific (private) libraries here
 src - Put project source files here
@@ -246,21 +279,14 @@ Compiling .pio/build/esp32dev/FrameworkArduino/wiring_shift.c.o
 Archiving .pio/build/esp32dev/libFrameworkArduino.a
 Indexing .pio/build/esp32dev/libFrameworkArduino.a
 Linking .pio/build/esp32dev/firmware.elf
-/home/runner/.platformio/packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/bin/ld: .pio/build/esp32dev/src/MbedTLSAlgorithms.ino.cpp.o:(.literal._ZN9ESPressio8Security22ChaCha20Poly1305Cipher4OpenEPKhjS3_jS3_jS3_jS3_jRSt6vectorIhSaIhEE[ESPressio::Security::ChaCha20Poly1305Cipher::Open(unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, std::vector<unsigned char, std::allocator<unsigned char> >&)]+0x4): undefined reference to `mbedtls_chachapoly_init'
-/home/runner/.platformio/packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/bin/ld: .pio/build/esp32dev/src/MbedTLSAlgorithms.ino.cpp.o:(.literal._ZN9ESPressio8Security22ChaCha20Poly1305Cipher4OpenEPKhjS3_jS3_jS3_jS3_jRSt6vectorIhSaIhEE[ESPressio::Security::ChaCha20Poly1305Cipher::Open(unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, std::vector<unsigned char, std::allocator<unsigned char> >&)]+0x8): undefined reference to `mbedtls_chachapoly_setkey'
-/home/runner/.platformio/packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/bin/ld: .pio/build/esp32dev/src/MbedTLSAlgorithms.ino.cpp.o:(.literal._ZN9ESPressio8Security22ChaCha20Poly1305Cipher4OpenEPKhjS3_jS3_jS3_jS3_jRSt6vectorIhSaIhEE[ESPressio::Security::ChaCha20Poly1305Cipher::Open(unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, std::vector<unsigned char, std::allocator<unsigned char> >&)]+0xc): undefined reference to `mbedtls_chachapoly_auth_decrypt'
-/home/runner/.platformio/packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/bin/ld: .pio/build/esp32dev/src/MbedTLSAlgorithms.ino.cpp.o:(.literal._ZN9ESPressio8Security22ChaCha20Poly1305Cipher4OpenEPKhjS3_jS3_jS3_jS3_jRSt6vectorIhSaIhEE[ESPressio::Security::ChaCha20Poly1305Cipher::Open(unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, std::vector<unsigned char, std::allocator<unsigned char> >&)]+0x10): undefined reference to `mbedtls_chachapoly_free'
-/home/runner/.platformio/packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/bin/ld: .pio/build/esp32dev/src/MbedTLSAlgorithms.ino.cpp.o:(.literal._ZN9ESPressio8Security22ChaCha20Poly1305Cipher4SealEPKhjS3_jS3_jS3_jRSt6vectorIhSaIhEES7_[ESPressio::Security::ChaCha20Poly1305Cipher::Seal(unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, std::vector<unsigned char, std::allocator<unsigned char> >&, std::vector<unsigned char, std::allocator<unsigned char> >&)]+0x0): undefined reference to `mbedtls_chachapoly_encrypt_and_tag'
-/home/runner/.platformio/packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/bin/ld: .pio/build/esp32dev/src/MbedTLSAlgorithms.ino.cpp.o: in function `ESPressio::Security::ChaCha20Poly1305Cipher::Open(unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, std::vector<unsigned char, std::allocator<unsigned char> >&)':
-/tmp/tmpiocx1rf2/lib/ESPressio-Security/src/ESPressio_MbedTLSAead.hpp:93: undefined reference to `mbedtls_chachapoly_init'
-/home/runner/.platformio/packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/bin/ld: /tmp/tmpiocx1rf2/lib/ESPressio-Security/src/ESPressio_MbedTLSAead.hpp:93: undefined reference to `mbedtls_chachapoly_setkey'
-/home/runner/.platformio/packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/bin/ld: /tmp/tmpiocx1rf2/lib/ESPressio-Security/src/ESPressio_MbedTLSAead.hpp:94: undefined reference to `mbedtls_chachapoly_auth_decrypt'
-/home/runner/.platformio/packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/bin/ld: /tmp/tmpiocx1rf2/lib/ESPressio-Security/src/ESPressio_MbedTLSAead.hpp:94: undefined reference to `mbedtls_chachapoly_free'
-/home/runner/.platformio/packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/bin/ld: .pio/build/esp32dev/src/MbedTLSAlgorithms.ino.cpp.o: in function `ESPressio::Security::ChaCha20Poly1305Cipher::Seal(unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, unsigned char const*, unsigned int, std::vector<unsigned char, std::allocator<unsigned char> >&, std::vector<unsigned char, std::allocator<unsigned char> >&)':
-/tmp/tmpiocx1rf2/lib/ESPressio-Security/src/ESPressio_MbedTLSAead.hpp:89: undefined reference to `mbedtls_chachapoly_init'
-/home/runner/.platformio/packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/bin/ld: /tmp/tmpiocx1rf2/lib/ESPressio-Security/src/ESPressio_MbedTLSAead.hpp:89: undefined reference to `mbedtls_chachapoly_setkey'
-/home/runner/.platformio/packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/bin/ld: /tmp/tmpiocx1rf2/lib/ESPressio-Security/src/ESPressio_MbedTLSAead.hpp:90: undefined reference to `mbedtls_chachapoly_encrypt_and_tag'
-/home/runner/.platformio/packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/bin/ld: /tmp/tmpiocx1rf2/lib/ESPressio-Security/src/ESPressio_MbedTLSAead.hpp:90: undefined reference to `mbedtls_chachapoly_free'
-collect2: error: ld returned 1 exit status
-*** [.pio/build/esp32dev/firmware.elf] Error 1
-========================== [FAILED] Took 5.99 seconds ==========================
+Retrieving maximum program size .pio/build/esp32dev/firmware.elf
+Checking size .pio/build/esp32dev/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=         ]   6.6% (used 21576 bytes from 327680 bytes)
+Flash: [==        ]  22.6% (used 296233 bytes from 1310720 bytes)
+Building .pio/build/esp32dev/firmware.bin
+esptool.py v4.11.0
+Creating esp32 image...
+Merged 2 ELF sections
+Successfully created esp32 image.
+========================= [SUCCESS] Took 7.67 seconds =========================
