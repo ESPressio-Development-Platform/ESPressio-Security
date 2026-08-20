@@ -8,7 +8,10 @@
   "license": "Apache-2.0",
   "frameworks": "*",
   "platforms": "*",
-  "build": {"flags": ["-std=gnu++17", "-DESPRESSIO_SECURITY"]},
+  "build": {
+    "flags": ["-std=gnu++17", "-frtti", "-DESPRESSIO_SECURITY"],
+    "unflags": ["-fno-rtti"]
+  },
   "dependencies": [
     {
       "name": "Flowduino ESPressio-Observable",
