@@ -35,6 +35,12 @@ void setup() {
     config.OutboundKeyID = 1;
     config.SenderID = ESP.getEfuseMac();
 
+    // Leave SessionID at zero to generate a fresh authenticated session epoch
+    // automatically from ESP32RandomSource on first protected transmission.
+    // Supplying a non-zero SessionID is supported when the application owns
+    // session identity explicitly.
+    config.SessionID = 0;
+
     static TransportSecurity instance(ciphers, keys, randomSource, config);
     security = &instance;
 
@@ -47,9 +53,10 @@ void setup() {
         protectedPayload
     );
 
-    Serial.printf("protected=%s bytes=%u\n",
+    Serial.printf("protected=%s bytes=%u session=%llu\n",
         protectedResult.Success ? "yes" : "no",
-        static_cast<unsigned>(protectedPayload.size()));
+        static_cast<unsigned>(protectedPayload.size()),
+        static_cast<unsigned long long>(security->GetSessionID()));
 
     UnprotectedPayload opened;
     SecurityResult openedResult = security->Unprotect(
@@ -59,9 +66,10 @@ void setup() {
         opened
     );
 
-    Serial.printf("authenticated=%s sender=%llu sequence=%llu plaintext=\"%.*s\"\n",
+    Serial.printf("authenticated=%s sender=%llu session=%llu sequence=%llu plaintext=\"%.*s\"\n",
         openedResult.Success ? "yes" : "no",
         static_cast<unsigned long long>(opened.SenderID),
+        static_cast<unsigned long long>(opened.SessionID),
         static_cast<unsigned long long>(opened.Sequence),
         static_cast<int>(opened.Data.size()),
         opened.Data.empty() ? "" : reinterpret_cast<const char*>(opened.Data.data()));
