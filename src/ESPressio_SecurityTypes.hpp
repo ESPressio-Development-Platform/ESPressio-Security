@@ -9,9 +9,9 @@
 namespace ESPressio::Security {
 
 constexpr uint32_t ESPRESSIO_SECURITY_VERSION_MAJOR = 0;
-constexpr uint32_t ESPRESSIO_SECURITY_VERSION_MINOR = 1;
+constexpr uint32_t ESPRESSIO_SECURITY_VERSION_MINOR = 2;
 constexpr uint32_t ESPRESSIO_SECURITY_VERSION_PATCH = 0;
-constexpr const char* ESPRESSIO_SECURITY_VERSION = "0.1.0";
+constexpr const char* ESPRESSIO_SECURITY_VERSION = "0.2.0";
 
 enum class AeadAlgorithm : uint8_t {
     Unknown = 0,
