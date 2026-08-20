@@ -12,6 +12,18 @@ For 0.2.0, ESPressio Security adds a required dependency on **ESPressio Observab
 
 ESPressio Event remains **optional**. ESPressio Event 5.8.0 adds `TransportSecurityEventBridge`, which binds to a specific `TransportSecurity` instance and converts those observations into asynchronous Events without making Event a Security dependency. Key material is never exposed through the observer or Event surfaces.
 
+On ESP32/Arduino, Observable's typed observer dispatch requires RTTI. PlatformIO projects consuming Security 0.2.0 must therefore enable RTTI at the **project level** because Arduino's default `-fno-rtti` applies to the application translation unit and cannot be reliably removed by a dependency's `library.json` alone:
+
+```ini
+build_flags =
+    -std=gnu++17
+    -frtti
+
+build_unflags =
+    -std=gnu++11
+    -fno-rtti
+```
+
 Development-branch PlatformIO dependencies are therefore:
 
 ```ini
@@ -108,7 +120,21 @@ build_unflags =
     -std=gnu++11
 ```
 
-For the 0.2.0 release generation, add ESPressio Observable 3.x as shown in the development update above.
+For 0.2.0 on ESP32/Arduino, add ESPressio Observable 3.x and enable RTTI at project level:
+
+```ini
+lib_deps =
+    flowduino/ESPressio-Security@^0.2.0
+    flowduino/ESPressio-Observable@^3.0.1
+
+build_flags =
+    -std=gnu++17
+    -frtti
+
+build_unflags =
+    -std=gnu++11
+    -fno-rtti
+```
 
 To deliberately consume the current repository instead of a release:
 
@@ -230,138 +256,108 @@ Each authenticated envelope contains a non-zero 64-bit session ID and sequence n
 sender ID + key ID + session ID
 ```
 
-A sliding window permits limited legitimate reordering while rejecting duplicates and stale packets within that session. Replay state is committed **only after successful AEAD authentication and protocol validation**, preventing unauthenticated forged high sequence numbers from advancing receiver state.
+A sliding window permits limited legitimate reordering while rejecting duplicates and stale packets within that session. Replay state is committed **only after successful AEAD authentication and protocol validation**, so forged packets cannot poison replay state.
 
-This solves the sender-reboot case cleanly:
+This permits a sender to reboot, generate a new authenticated session ID, reset its sequence to `1`, and remain acceptable to receivers that have already seen much larger sequence numbers from its previous session.
 
-```text
-boot A: sender X / session A / sequence 1, 2, 3 ...
-boot B: sender X / session B / sequence 1, 2, 3 ...
-```
-
-The restarted sequence is accepted because session B is a distinct authenticated replay domain; replaying either session's already-seen packets is still rejected.
+`ResetReplayProtection()` remains available for explicit administrative/session-boundary use.
 
 ## Observable Security Lifecycle (0.2.0)
 
-`TransportSecurity` now accepts `ITransportSecurityObserver` registrations:
+`TransportSecurity` can be observed directly:
 
 ```cpp
+#include <ESPressio_Security.hpp>
+
 class SecurityObserver final :
     public ESPressio::Security::ITransportSecurityObserver {
 public:
     void OnTransportSecuritySessionEstablished(uint64_t sessionID) override {
-        // Session lifecycle observation.
+        // Record or display the authenticated session identity.
     }
 
     void OnTransportSecurityFailure(
         const ESPressio::Security::SecurityResult& result
     ) override {
-        // Diagnostics / metrics / audit handling.
+        // Diagnostics/metrics only; ordinary return-value handling remains authoritative.
     }
 };
 
 SecurityObserver observer;
-auto observerHandle = security.RegisterObserver(&observer);
+auto handle = security.RegisterObserver(&observer);
 ```
 
-The observer surface supplements rather than replaces `SecurityResult`. Observer exceptions are isolated from Security processing so a diagnostics consumer cannot interrupt a cryptographic state transition.
+Available observations are:
 
-When ESPressio Event 5.8.0 is selected, `ESPressio_TransportSecurityEventBridge.hpp` converts the same observations into asynchronous Event instances without changing Security's dependency direction.
+- configuration changed;
+- security session reset;
+- security session established;
+- replay protection reset;
+- security failure.
 
-## Protecting a Payload
+The observation layer is intentionally passive. It does not replace the ordinary `Protect()` / `Unprotect()` result model and it never exposes key material.
+
+## Optional ESPressio Event Bridge (0.2.0)
+
+ESPressio Event **5.8.0+** provides the opt-in bridge:
 
 ```cpp
-#include <ESPressio_Security.hpp>
+#include <ESPressio_TransportSecurityEventBridge.hpp>
 
-using namespace ESPressio::Security;
-
-AES256GCMCipher aes;
-AeadCipherRegistry ciphers;
-StaticKeyProvider keys;
-ESP32RandomSource random;
-
-ciphers.Register(aes);
-uint8_t key[32] = { /* securely provisioned bytes */ };
-keys.Add(1, AeadAlgorithm::AES256GCM, key, sizeof(key));
-
-TransportSecurityConfig config;
-config.Policy = TransportSecurityPolicy::Required;
-config.OutboundAlgorithm = AeadAlgorithm::AES256GCM;
-config.OutboundKeyID = 1;
-config.SenderID = ESP.getEfuseMac();
-config.SessionID = 0; // automatically generate a fresh sender epoch
-
-TransportSecurity security(ciphers, keys, random, config);
-std::vector<uint8_t> protectedBytes;
-auto result = security.Protect(42, payload, payloadLength, protectedBytes);
+ESPressio::Event::TransportSecurityEventBridge bridge(security);
 ```
 
-`42` is the application/transport protocol identifier cryptographically bound to the payload.
+This converts Security observations to asynchronous ESPressio Events while keeping the dependency direction correct: Security depends only on Observable; Event optionally adapts Security.
 
-## Receiving a Protected Payload
+## Generic Transport Decoration
+
+`SecureTransportDecorator` can wrap any `ITransportSecurityCarrier`:
 
 ```cpp
-UnprotectedPayload opened;
-auto result = security.Unprotect(42, receivedBytes, receivedSize, opened);
-
-if (!result.Success) {
-    // Drop it. It must not reach protocol/application processing.
-    return;
-}
-
-// opened.Data has passed authentication, decryption,
-// protocol binding and replay checks.
+SecureTransportDecorator secure(carrier, security);
+secure.Send(protocolID, payload);
 ```
 
-Authenticated sender, key, session and sequence metadata is available without exposing the secret key.
+Inbound carrier packets are authenticated/decrypted before the registered receive callback is invoked. Authentication failure, replay rejection or protocol mismatch therefore prevents plaintext delivery.
 
-## Generic Secure Transport Decorator
+Concrete transport libraries may alternatively integrate `TransportSecurity` directly where their callback/threading model makes that more natural.
 
-Concrete transports can implement the intentionally small `ITransportSecurityCarrier` interface and then be decorated:
+## Concurrency Model
 
-```cpp
-SecureTransportDecorator secureCarrier(carrier, security);
-```
+The initial `TransportSecurity` implementation protects mutable outbound sequence/replay state and configuration transitions with a lightweight internal mutex when `<mutex>` is available.
 
-The decorator calls its application receiver only with data accepted by `TransportSecurity`. This is the intended integration point for ESPressio ESP-Now, ESPressio Sockets and future transports.
-
-See [TRANSPORT_SECURITY.md](TRANSPORT_SECURITY.md) for the wire format and downstream-integration details.
-
-## Examples
-
-The repository includes:
-
-- `examples/BasicSecurePayload` — AES-256-GCM registration, key provisioning, automatic session generation, ESP32 nonce generation, protect/open flow.
-- `examples/MbedTLSAlgorithms` — compile-time discovery and registration of available mbedTLS-backed AEAD implementations.
-
-Example keys are demonstration-only. Do not copy hard-coded example key material into production firmware.
+For embedded integrations, applications should nevertheless prefer a single well-defined security ownership/execution context per security instance where practical. This keeps transport callback behavior deterministic and avoids avoidable contention.
 
 ## Testing
 
-Host-side CMake/CTest coverage uses a deterministic **test-only** AEAD implementation contained exclusively under `tests/`.
+Host tests cover:
 
-Coverage includes protect/open round trips, authenticated metadata, ciphertext/tag/header/session tampering, protocol binding, replay rejection, in-window reordering, sender reboot/session rollover, explicit and automatically generated sessions, key rotation, Required/Preferred/Disabled policy behavior, malformed envelopes, payload limits, generic decorator flow, and 0.2.0 observable lifecycle behavior.
+- envelope encode/decode;
+- AES-GCM protect/unprotect where available;
+- protocol binding;
+- replay rejection;
+- sender-session scoped replay behavior;
+- automatic outbound session generation;
+- tamper rejection;
+- key rotation;
+- policy behavior;
+- transport decoration;
+- Observable lifecycle notifications and observer-handle lifetime;
+- compile coverage for the mbedTLS wrapper interfaces.
 
-A separate production-cipher contract target instantiates all included mbedTLS-backed cipher classes against API-compatible host stubs. GitHub Actions also compile the ESP32 examples so the actual Arduino-ESP32 mbedTLS API surface is validated in addition to host abstraction tests.
+ESP32 CI additionally builds the production examples with the documented project-level RTTI configuration required by Observable's typed observer dispatch.
 
-## Security Considerations
+## Operational Notes
 
-Cryptography is only one part of a secure system. Applications remain responsible for secure key provisioning, physical security, firmware trust, secure boot/flash encryption where appropriate, key rotation policy, sender identity assignment and protection of secrets outside this library.
-
-Do not log, serialize or expose key material. ESPressio Security APIs intentionally expose key IDs rather than keys in envelope metadata/results.
-
-`Preferred` permits plaintext and must not be used where plaintext acceptance is unacceptable. Transport authentication also does not automatically authorize *what* an authenticated device may do; Command authorization/policy remains a separate application concern.
-
-If an application explicitly supplies session IDs rather than allowing automatic generation, it must not reuse a session ID with a restarted sequence while receivers may still retain replay state for that same sender/key/session domain.
-
-## Future Direction
-
-Potential extensions include secure ESP32 NVS key providers, key derivation/provider integrations, signed identity/provisioning workflows, group/per-peer key management helpers, explicit key-expiry/rotation policy, bounded/persistent replay-state strategies, hardware-backed keys, and downstream secure adapters for ESPressio ESP-Now and ESPressio Sockets.
-
-## Contributing
-
-Issues and contributions are welcome through the ESPressio Security GitHub repository. Security-sensitive changes should include corresponding tests and should avoid bespoke cryptographic primitives where established, reviewed platform cryptography is available.
+- Prefer `TransportSecurityPolicy::Required` where secure transport is actually required.
+- Avoid hard-coding production keys into firmware source.
+- Treat authenticated sender/session metadata as identity input, not as authorization policy by itself.
+- Use a secure provisioning/storage strategy appropriate to the deployment.
+- Keep production mbedTLS/Arduino-ESP32/ESP-IDF versions under update and vulnerability-management processes.
+- Treat `Preferred` as a migration mode, not equivalent security to `Required`.
+- Keep replay windows sized for the expected amount of legitimate packet reordering.
+- Ensure ESP32/Arduino PlatformIO builds enable RTTI (`-frtti` and removal of `-fno-rtti`) when using Observable-backed Security 0.2.x.
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for release history and notable changes.
+See [CHANGELOG.md](CHANGELOG.md).
