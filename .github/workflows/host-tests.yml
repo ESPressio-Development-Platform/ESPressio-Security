@@ -31,19 +31,30 @@ jobs:
           path: deps/ESPressio-Observable
       - name: Install PlatformIO
         run: pip install platformio
+      - name: Create PlatformIO consumer project
+        shell: bash
+        run: |
+          mkdir -p ci-project/src ci-project/lib
+          cp -R . ci-project/lib/ESPressio-Security
+          cp -R deps/ESPressio-Observable ci-project/lib/ESPressio-Observable
+          cat > ci-project/platformio.ini <<'EOF'
+          [env:esp32dev]
+          platform = espressif32
+          board = esp32dev
+          framework = arduino
+          build_unflags = -std=gnu++11
+          lib_deps =
+              ESPressio-Security
+              ESPressio-Observable
+          EOF
       - name: Compile BasicSecurePayload
-        run: >-
-          pio ci examples/BasicSecurePayload/BasicSecurePayload.ino
-          --board esp32dev
-          --lib .
-          --lib deps/ESPressio-Observable
-          --project-option="build_flags=-std=gnu++17"
-          --project-option="build_unflags=-std=gnu++11"
+        shell: bash
+        run: |
+          cp examples/BasicSecurePayload/BasicSecurePayload.ino ci-project/src/main.cpp
+          pio run -d ci-project
       - name: Compile MbedTLSAlgorithms
-        run: >-
-          pio ci examples/MbedTLSAlgorithms/MbedTLSAlgorithms.ino
-          --board esp32dev
-          --lib .
-          --lib deps/ESPressio-Observable
-          --project-option="build_flags=-std=gnu++17"
-          --project-option="build_unflags=-std=gnu++11"
+        shell: bash
+        run: |
+          rm -rf ci-project/.pio
+          cp examples/MbedTLSAlgorithms/MbedTLSAlgorithms.ino ci-project/src/main.cpp
+          pio run -d ci-project
