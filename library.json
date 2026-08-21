@@ -1,8 +1,8 @@
 {
   "name": "ESPressio-Security",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Transport-neutral authenticated encryption, authentication and replay protection for the ESPressio Development Platform",
-  "keywords": "espressio,security,encryption,aead,aes,gcm,ccm,chacha20,poly1305,transport,authentication,replay,observable",
+  "keywords": "espressio,security,encryption,aead,aes,gcm,ccm,chacha20,poly1305,transport,authentication,replay,observable,event",
   "repository": {"type": "git", "url": "https://github.com/Flowduino/ESPressio-Security.git"},
   "authors": {"name": "Flowduino", "maintainer": true, "url": "https://flowduino.com"},
   "license": "Apache-2.0",
