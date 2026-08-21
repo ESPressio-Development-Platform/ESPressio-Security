@@ -1,38 +1,32 @@
-# ESPressio Library Dependency Chart
+# ESPressio Dependency Chart — Security 0.3.0
 
-ESPressio Security is a foundational, transport-neutral library.
+![ESPressio Library Dependency Chart](ESPRESSIO_DEPENDENCY_CHART.svg)
 
-## ESPressio Security 0.1.0
-
-**Required ESPressio dependencies: none.**
-
-Security owns authenticated encryption, key lookup, security envelopes, replay protection and transport-security policy. It deliberately does not depend on concrete communication libraries.
-
-The intended opt-in dependency direction is:
+## Security 0.3.0
 
 ```text
-ESPressio ESP-Now  - - -> ESPressio Security
-ESPressio Sockets  - - -> ESPressio Security
-future transports  - - -> ESPressio Security
+Security 0.3.0
+    -> Observable >= 3.0.1 < 4.0.0
+    - - -> Event >= 6.0.0 < 7.0.0
+            Security Event types / TransportSecurityEventBridge only
 ```
 
-Higher-level protocols remain independent of cryptography:
+The Event relationship is opt-in. Core Security remains Event-free and transport-neutral.
+
+## Final coordinated ecosystem
 
 ```text
-Event / Command / Clock Synchronization / application protocol
-                         |
-                         v
-                Secure transport adapter
-                         |
-                         v
-                 ESPressio Security
-                         |
-                         v
-                concrete transport
+Observable 3.0.1
+Serializable 0.10.2
+Units 0.2.3
+Timing 2.2.4
+Threads 3.1.4
+Command 0.4.0
+Security 0.3.0
+Event 6.0.0
+Sockets 0.6.0
+ESP-Now 0.6.0
+Serial 0.6.0
 ```
 
-Security therefore sits beside other foundational ESPressio facilities rather than beneath Event, Command, ESP-Now, or Sockets as a mandatory dependency.
-
-## Architectural rule
-
-Security is applied at the transport boundary. A received protected packet is authenticated and decrypted before its plaintext is delivered to the protocol consumer. Packets failing authentication, policy, protocol binding, envelope validation or replay checks are discarded before application processing.
+Security owns its Security-specific Event bridge. Event 6.0.0 does not depend back on Security, so no reciprocal edge remains.
