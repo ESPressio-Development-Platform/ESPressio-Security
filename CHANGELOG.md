@@ -2,6 +2,29 @@
 
 All notable changes to ESPressio Security are documented in this file.
 
+## [0.3.0] - 2026-08-21
+
+### Added
+
+- Moved Security lifecycle Event types and `TransportSecurityEventBridge` ownership into ESPressio Security.
+- Added an opt-in Security -> Event integration targeting ESPressio Event 6.0.0 while keeping the normal Security core independent of Event.
+
+### Changed
+
+- Preserved the existing `ESPressio_SecurityEvents.hpp` and `ESPressio_TransportSecurityEventBridge.hpp` public names in their new owning package.
+- Updated package metadata, documentation, dependency charts, and CI for the 0.3.0 architecture.
+- The normal Security umbrella remains Event-free; Event is required only when the Event bridge headers are selected.
+
+### Compatibility
+
+- Core Security, encryption, replay-protection, and Observer APIs are unchanged.
+- Applications using the Event bridge must obtain the bridge headers from ESPressio Security 0.3.0 rather than ESPressio Event 6.0.0.
+
+### Tracking
+
+- Implements #5.
+- Coordinated with Flowduino/ESPressio-Event#36.
+
 ## [0.2.0] - 2026-08-20
 
 ### Added
