@@ -1,6 +1,6 @@
 # ESPressio Security
 
-Transport-neutral authenticated encryption, authentication, replay protection and key abstraction for the Flowduino ESPressio Development Platform.
+Transport-neutral authenticated encryption, authentication, replay protection and key abstraction for the ESPressio Development Platform.
 
 ESPressio Security protects **opaque transport payloads** without knowing whether they contain Events, Commands, clock synchronization messages, application packets, or another protocol. Concrete transports such as ESP-NOW, UDP, TCP and WebSockets can therefore opt into the same security layer while higher-level application protocols remain independent of cryptography.
 
@@ -84,8 +84,8 @@ PlatformIO/Arduino-ESP32:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Security@^0.3.0
-    flowduino/ESPressio-Observable@^3.0.1
+    espressio-development-platform/ESPressio-Security@^0.3.0
+    espressio-development-platform/ESPressio-Observable@^3.0.1
 
 build_flags =
     -std=gnu++17
@@ -102,7 +102,7 @@ When selecting the optional Event integration, also add:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Event@^6.0.0
+    espressio-development-platform/ESPressio-Event@^6.0.0
 ```
 
 # Security guarantees
