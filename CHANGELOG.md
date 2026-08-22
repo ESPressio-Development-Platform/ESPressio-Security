@@ -23,7 +23,7 @@ All notable changes to ESPressio Security are documented in this file.
 ### Tracking
 
 - Implements #5.
-- Coordinated with Flowduino/ESPressio-Event#36.
+- Coordinated with ESPressio-Development-Platform/ESPressio-Event#36.
 
 ## [0.2.0] - 2026-08-20
 

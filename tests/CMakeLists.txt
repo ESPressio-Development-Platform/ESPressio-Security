@@ -7,7 +7,7 @@ set(CMAKE_CXX_EXTENSIONS ON)
 include(FetchContent)
 FetchContent_Declare(
     ESPressioObservable
-    GIT_REPOSITORY https://github.com/Flowduino/ESPressio-Observable.git
+    GIT_REPOSITORY https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git
     GIT_TAG 3.0.1
     GIT_SHALLOW TRUE
 )
