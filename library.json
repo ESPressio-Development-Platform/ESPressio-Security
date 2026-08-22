@@ -1,6 +1,6 @@
 {
   "name": "ESPressio-Security",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Transport-neutral authenticated encryption, authentication and replay protection for the ESPressio Development Platform",
   "keywords": "espressio,security,encryption,aead,aes,gcm,ccm,chacha20,poly1305,transport,authentication,replay,observable,event",
   "homepage": "https://espressio.org",
@@ -16,7 +16,7 @@
   "dependencies": [
     {
       "name": "ESPressio-Observable",
-      "version": ">=3.0.1 <4.0.0",
+      "version": ">=3.0.2 <4.0.0",
       "url": "https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git"
     }
   ]
