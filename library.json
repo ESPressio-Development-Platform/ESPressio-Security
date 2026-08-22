@@ -3,6 +3,7 @@
   "version": "0.3.0",
   "description": "Transport-neutral authenticated encryption, authentication and replay protection for the ESPressio Development Platform",
   "keywords": "espressio,security,encryption,aead,aes,gcm,ccm,chacha20,poly1305,transport,authentication,replay,observable,event",
+  "homepage": "https://espressio.org",
   "repository": {"type": "git", "url": "https://github.com/ESPressio-Development-Platform/ESPressio-Security.git"},
   "authors": {"name": "Simon J. Stuart", "maintainer": true, "url": "https://espressio.org"},
   "license": "Apache-2.0",
