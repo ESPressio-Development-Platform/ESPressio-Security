@@ -1,16 +1,15 @@
 name: Repository Migration Normalizer
 
 on:
-  push:
-    branches:
-      - maintenance/13-repository-migration
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
   normalize:
-    if: github.actor != 'github-actions[bot]'
+    if: github.head_ref == 'maintenance/13-repository-migration' && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
