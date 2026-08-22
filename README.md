@@ -4,9 +4,9 @@ Transport-neutral authenticated encryption, authentication, replay protection an
 
 ESPressio Security protects **opaque transport payloads** without knowing whether they contain Events, Commands, clock synchronization messages, application packets, or another protocol. Concrete transports such as ESP-NOW, UDP, TCP and WebSockets can therefore opt into the same security layer while higher-level application protocols remain independent of cryptography.
 
-## Current Version — 0.3.0
+## Current Version — 0.3.1
 
-Security 0.3.0 retains the Security 0.2 transport-security API and now owns the optional Event representation of its own lifecycle. Core Security remains independent of Event; Event is acquired only when the application explicitly selects the Event integration headers.
+Security 0.3.1 is the repository-relocation dependency patch for the Security 0.3 generation. It retains the transport-security API and optional Event representation of Security lifecycle. Core Security remains independent of Event; Event is acquired only when the application explicitly selects the Event integration headers.
 
 ## Why transport-level security?
 
@@ -65,13 +65,13 @@ Principal public types include:
 Required:
 
 ```text
-ESPressio Observable >= 3.0.1 < 4.0.0
+ESPressio Observable >= 3.0.2 < 4.0.0
 ```
 
 Optional Event integration:
 
 ```text
-ESPressio Event >= 6.0.0 < 7.0.0
+ESPressio Event >= 6.0.1 < 7.0.0
 ```
 
 Security remains independent of ESP-Now, Sockets, Command, Serial and Event at the core layer.
@@ -84,8 +84,8 @@ PlatformIO/Arduino-ESP32:
 
 ```ini
 lib_deps =
-    espressio-development-platform/ESPressio-Security@^0.3.0
-    espressio-development-platform/ESPressio-Observable@^3.0.1
+    espressio-development-platform/ESPressio-Security@^0.3.1
+    espressio-development-platform/ESPressio-Observable@^3.0.2
 
 build_flags =
     -std=gnu++17
@@ -102,7 +102,7 @@ When selecting the optional Event integration, also add:
 
 ```ini
 lib_deps =
-    espressio-development-platform/ESPressio-Event@^6.0.0
+    espressio-development-platform/ESPressio-Event@^6.0.1
 ```
 
 # Security guarantees

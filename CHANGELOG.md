@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.1 — 2026-08-22
+
+### Changed
+- Published the post-migration ESPressio Security package generation from `ESPressio-Development-Platform`.
+- Raised required ESPressio Observable to `>=3.0.2 <4.0.0`.
+- Raised optional ESPressio Event integration to `>=6.0.1 <7.0.0`.
+- Updated package metadata, README dependency/install guidance, CI validation, and dependency documentation.
+
+### Compatibility
+- No Security public API or runtime behaviour changes are introduced by this repository-relocation patch release.
+
 All notable changes to ESPressio Security are documented in this file.
 
 ## [0.3.0] - 2026-08-21
