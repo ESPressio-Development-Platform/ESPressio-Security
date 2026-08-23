@@ -9,9 +9,9 @@
 namespace ESPressio::Security {
 
 constexpr uint32_t ESPRESSIO_SECURITY_VERSION_MAJOR = 0;
-constexpr uint32_t ESPRESSIO_SECURITY_VERSION_MINOR = 2;
+constexpr uint32_t ESPRESSIO_SECURITY_VERSION_MINOR = 4;
 constexpr uint32_t ESPRESSIO_SECURITY_VERSION_PATCH = 0;
-constexpr const char* ESPRESSIO_SECURITY_VERSION = "0.2.0";
+constexpr const char* ESPRESSIO_SECURITY_VERSION = "0.4.0";
 
 enum class AeadAlgorithm : uint8_t {
     Unknown = 0,
@@ -72,15 +72,7 @@ struct TransportSecurityConfig {
     AeadAlgorithm OutboundAlgorithm = AeadAlgorithm::AES256GCM;
     uint32_t OutboundKeyID = 1;
     uint64_t SenderID = 0;
-
-    /*
-     * Authenticated sender-session/epoch identifier. Zero means generate a
-     * fresh non-zero value from IRandomSource when the first protected packet
-     * is produced. Applications may supply a non-zero value when session
-     * identity is provisioned externally or deterministic behavior is needed.
-     */
     uint64_t SessionID = 0;
-
     std::size_t MaximumPlaintextBytes = 16384;
     std::size_t ReplayWindowSize = 64;
 };
