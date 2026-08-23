@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.4.0] - 2026-08-23
+
+### Added
+
+- Added `IDataProtector` as the generic authenticated data-at-rest protection contract.
+- Added `DataProtector`, a transport-independent AEAD implementation built on the existing cipher registry, key-provider and random-source abstractions.
+- Added `DataProtectionConfig` for algorithm, key ID and maximum-plaintext policy.
+- Added `DataProtectionContext` so callers can bind protected bytes to an authenticated purpose/context without storing that context in plaintext.
+- Added a versioned `ESDP` protected-data envelope carrying algorithm/key identity, nonce, authentication tag and ciphertext while never carrying key material.
+- Added byte and string convenience APIs.
+- Added `std::array` convenience support to `StaticKeyProvider` for compile-time/static key material.
+- Added host tests covering round trips, context binding, tamper rejection, malformed envelopes and payload limits.
+
+### Changed
+
+- Updated the normal Security umbrella to expose the generic data-protection API alongside transport security.
+- Updated package metadata and documentation for the 0.4.0 feature generation.
+
+### Compatibility
+
+- Backward-compatible interface extension; existing TransportSecurity APIs and wire format are unchanged.
+- `IDataProtector` is intentionally independent of transport sessions, protocol IDs, replay windows and sequence counters.
+
+### Tracking
+
+- Implements #17.
+
 ## 0.3.1 — 2026-08-22
 
 ### Changed

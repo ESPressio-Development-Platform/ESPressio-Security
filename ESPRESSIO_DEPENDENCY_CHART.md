@@ -1,13 +1,22 @@
-# ESPressio Dependency Chart — Current Released Generation
+# ESPressio Dependency Chart — Security 0.4.0
 
 ![ESPressio Library Dependency Chart](ESPRESSIO_DEPENDENCY_CHART.svg)
 
-This document is the canonical snapshot of the current released ESPressio dependency generation. Arrows point from the consuming library to the library it consumes.
+Arrows point from a consuming library to the ESPressio library it consumes. Solid arrows are required dependencies; dashed arrows are opt-in integrations.
 
-- **Required** — the dependency is part of the library's normal/core contract.
-- **Opt-in** — the dependency is introduced only when the corresponding integration/header is selected.
+## Security 0.4.0
 
-## Released generation
+```text
+Security 0.4.0
+    -> Observable >= 3.0.2 < 4.0.0
+
+Security Event integration
+    - - -> Event >= 6.0.1 < 7.0.0
+```
+
+The new `IDataProtector` / `DataProtector` feature introduces **no new required dependency**. It deliberately reuses Security-owned AEAD, key-provider and random-source abstractions.
+
+## Current released platform generation at feature start
 
 ```text
 Observable    3.0.2
@@ -17,117 +26,44 @@ Timing        2.2.5
 Threads       3.1.5
 Event         6.0.1
 Command       1.0.1
-Security      0.3.1
-Sockets       0.7.0
-ESP-Now       0.8.0
-Serial        0.7.2
+Security      0.3.1 -> 0.4.0 in this feature
+Sockets       0.7.1
+ESP-Now       0.8.1
+Serial        0.7.3
+Persistence   0.2.0
 ```
 
-## Required dependencies
+## Downstream feature cascade
+
+The coordinated feature tranche is intended to add these **downstream/opt-in** relationships without introducing reverse dependencies:
 
 ```text
-Observable 3.0.2
-    -> none
+Serializable 0.11.x
+    - - -> Security >= 0.4.0 < 1.0.0
+            protected serialization/deserialization
 
-Serializable 0.10.3
-    -> none
+Persistence 0.3.x
+    - - -> Serializable >= 0.11.0 < 1.0.0
+            protected typed persistence via Serializable integration
 
-Units 0.2.4
-    -> none
-
-Timing 2.2.5
-    -> Units >= 0.2.3 < 1.0.0
-    -> Observable >= 3.0.2 < 4.0.0
-
-Threads 3.1.5
-    -> Timing >= 2.2.4 < 3.0.0
-    -> Observable >= 3.0.2 < 4.0.0
-
-Event 6.0.1
-    -> Threads >= 3.1.4 < 4.0.0
-    -> Timing >= 2.2.4 < 3.0.0
-    -> Observable >= 3.0.2 < 4.0.0
-
-Command 1.0.1
-    -> Observable >= 3.0.2 < 4.0.0
-
-Security 0.3.1
-    -> Observable >= 3.0.2 < 4.0.0
-
-Sockets 0.7.0
-    -> Observable >= 3.0.2 < 4.0.0
-
-ESP-Now 0.8.0
-    -> Timing >= 2.2.4 < 3.0.0
-    -> Observable >= 3.0.2 < 4.0.0
-
-Serial 0.7.2
-    -> none in the core package
-```
-
-## Opt-in integrations
-
-```text
-Units
-    - - -> Serializable >= 0.10.2 < 1.0.0
-            Serializable Unit variants
-
-Event
-    - - -> Serializable >= 0.10.2 < 1.0.0
-            Serializable Events / Event Transport
-
-Command
-    - - -> Event >= 6.0.1 < 7.0.0
-            Command-owned Event types / CommandRegistryEventBridge
-
-Security
-    - - -> Event >= 6.0.1 < 7.0.0
-            Security-owned Event types / TransportSecurityEventBridge
-
-Sockets
-    - - -> Event >= 6.0.1 < 7.0.0
-    - - -> Command >= 1.0.0 < 2.0.0
-    - - -> Security >= 0.3.0 < 1.0.0
-    - - -> Timing >= 2.2.4 < 3.0.0
-
-ESP-Now
-    - - -> Event >= 6.0.1 < 7.0.0
-    - - -> Command >= 1.0.0 < 2.0.0
-    - - -> Security >= 0.3.0 < 1.0.0
+WiFi 0.1.x
+    -> Observable
+    -> Serializable
+    -> Persistence
+    - - -> Security
+    - - -> Event
+    - - -> Command
 
 Serial
-    - - -> Command >= 1.0.0 < 2.0.0
-    - - -> Security >= 0.3.0 < 1.0.0
-    - - -> Sockets >= 0.7.0 < 1.0.0
-    - - -> ESP-Now >= 0.8.0 < 1.0.0
-    - - -> Event >= 6.0.1 < 7.0.0
-    - - -> Serializable >= 0.10.2 < 1.0.0
-    - - -> Timing >= 2.2.4 < 3.0.0
-    - - -> Threads >= 3.1.4 < 4.0.0
+    - - -> WiFi
 ```
 
-`JsonCommandInterpreter` optionally consumes external **ArduinoJson 7.x**. ArduinoJson is not an ESPressio library and is therefore not represented as an ESPressio graph edge.
+Security itself remains independent of Serializable, Persistence, WiFi, Sockets, ESP-Now, Command and Serial.
 
 ## Dependency-direction invariants
 
-Event 6.0.1 owns the generic Event mechanism. Domain-specific Event types and bridges belong to the lowest-order library that owns the represented concept without introducing a reverse dependency:
-
-```text
-Command  - - -> Event
-Security - - -> Event
-Sockets  - - -> Event
-ESP-Now  - - -> Event
-
-Event -> Command   NONE
-Event -> Security  NONE
-Event -> Sockets   NONE
-Event -> ESP-Now   NONE
-```
-
-Timing and Threads Event bridges remain in Event because Event already requires Timing and Threads for its own responsibilities; moving those bridges upstream would create reverse dependencies.
-
-Serial remains terminal/downstream. No upstream ESPressio library should depend on Serial.
-
-## Standalone repositories
-
-ESPressio Tree and ESPressio WiFi are not dependency edges in the coordinated graph above. Tree is a standalone generic component. WiFi currently has no implemented public API and must not be treated as a dependency of the released stack merely because legacy package metadata exists in its repository.
+- Security owns cryptographic policy and implementation abstractions.
+- Serializable may opt into Security; Security must not depend back on Serializable.
+- Persistence may consume protected Serializable APIs; Security must not depend on Persistence.
+- WiFi may use all three lower-order capabilities, but Security must remain unaware of WiFi.
+- Serial remains terminal/downstream; no upstream ESPressio library should depend on Serial.
