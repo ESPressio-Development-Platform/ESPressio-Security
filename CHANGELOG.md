@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.4.1] - 2026-08-23
+
+### Changed
+
+- Updated the optional ESPressio Event integration baseline to `>=6.0.2 <7.0.0`.
+- Updated ESP32 Event-integration CI to the corrected cascade generation: Units 0.2.6, Timing 2.2.7, Threads 3.1.6 and Event 6.0.2.
+- Updated package metadata and README dependency/install guidance for Security 0.4.1.
+
+### Architecture
+
+- ESPressio Observable remains Security's only required ESPressio dependency.
+- Event remains opt-in through Security-owned Event types and `TransportSecurityEventBridge`.
+- Security remains independent of Serializable, Persistence, WiFi, Sockets, ESP-Now, Command and Serial.
+
+### Compatibility
+
+- No Security public API, data-protection, transport-security, encryption, replay-protection, observer or Event-bridge behaviour changes.
+- Existing `ESDP` protected-data and transport-security wire formats are unchanged.
+
+### Tracking
+
+- Closes #19.
+
 ## [0.4.0] - 2026-08-23
 
 ### Added
