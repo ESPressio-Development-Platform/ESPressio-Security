@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <vector>
 #include "ESPressio_IKeyProvider.hpp"
@@ -17,6 +18,12 @@ public:
         Remove(keyID, algorithm);
         Entry entry; entry.KeyID = keyID; entry.Algorithm = algorithm; entry.Bytes.assign(key, key + size);
         _entries.push_back(std::move(entry)); return true;
+    }
+
+    template<std::size_t N>
+    bool Add(uint32_t keyID, AeadAlgorithm algorithm, const std::array<uint8_t, N>& key) {
+        static_assert(N > 0, "A static key must contain at least one byte");
+        return Add(keyID, algorithm, key.data(), key.size());
     }
 
     bool Remove(uint32_t keyID, AeadAlgorithm algorithm) {
