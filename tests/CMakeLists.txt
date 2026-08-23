@@ -8,7 +8,7 @@ include(FetchContent)
 FetchContent_Declare(
     ESPressioObservable
     GIT_REPOSITORY https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git
-    GIT_TAG 3.0.1
+    GIT_TAG 3.0.2
     GIT_SHALLOW TRUE
 )
 FetchContent_GetProperties(ESPressioObservable)
@@ -19,6 +19,8 @@ set(ESPRESSIO_OBSERVABLE_INCLUDE ${espressioobservable_SOURCE_DIR}/src)
 
 add_executable(Security test_security.cpp)
 target_include_directories(Security PRIVATE ../src ${ESPRESSIO_OBSERVABLE_INCLUDE})
+add_executable(DataProtector test_data_protector.cpp)
+target_include_directories(DataProtector PRIVATE ../src ${ESPRESSIO_OBSERVABLE_INCLUDE})
 add_executable(SecureTransportDecorator test_decorator.cpp)
 target_include_directories(SecureTransportDecorator PRIVATE ../src ${ESPRESSIO_OBSERVABLE_INCLUDE})
 add_executable(MbedTLSCompile test_mbedtls_compile.cpp)
@@ -28,6 +30,7 @@ target_include_directories(SecurityObservable PRIVATE ../src ${ESPRESSIO_OBSERVA
 
 enable_testing()
 add_test(NAME Security COMMAND Security)
+add_test(NAME DataProtector COMMAND DataProtector)
 add_test(NAME SecureTransportDecorator COMMAND SecureTransportDecorator)
 add_test(NAME MbedTLSCompile COMMAND MbedTLSCompile)
 add_test(NAME SecurityObservable COMMAND SecurityObservable)
