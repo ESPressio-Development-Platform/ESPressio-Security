@@ -2,13 +2,13 @@
 
 Authenticated data protection, transport security, replay protection and key abstraction for the ESPressio Development Platform.
 
-## Current Version — 0.4.0
+## Current Version — 0.4.1
 
-Security 0.4.0 adds a transport-independent **data protection** API for protecting arbitrary bytes and strings at rest. Existing transport-security APIs and wire compatibility remain unchanged.
+Security 0.4.1 is a dependency-maintenance release validating the optional Security Event integration against Event 6.0.2 and the corrected Serializable 0.11.2 cascade. The data-protection and transport-security APIs introduced through 0.4.0 are unchanged.
 
 ## Two security responsibilities
 
-Security now deliberately separates two related but different concerns:
+Security deliberately separates two related but different concerns:
 
 ```text
 Data at rest                         Data in transit
@@ -30,7 +30,7 @@ Use `IDataProtector` / `DataProtector` when a value simply needs authenticated e
 
 ```ini
 lib_deps =
-    espressio-development-platform/ESPressio-Security@^0.4.0
+    espressio-development-platform/ESPressio-Security@^0.4.1
     espressio-development-platform/ESPressio-Observable@^3.0.2
 
 build_flags =
@@ -161,7 +161,7 @@ Because modern AEAD is used, a successfully unprotected value has both confident
 
 # Key providers
 
-`IKeyProvider` remains the key-management boundary. `StaticKeyProvider` is useful for tests and simple firmware and now accepts `std::array` directly:
+`IKeyProvider` remains the key-management boundary. `StaticKeyProvider` is useful for tests and simple firmware and accepts `std::array` directly:
 
 ```cpp
 constexpr std::array<uint8_t, 32> key = { /* ... */ };
@@ -203,7 +203,7 @@ Use `Required` whenever secure transport is a real requirement.
 Required:
 
 ```text
-Security 0.4.0
+Security 0.4.1
     -> Observable >= 3.0.2 < 4.0.0
 ```
 
@@ -211,7 +211,7 @@ Optional:
 
 ```text
 Security Event integration
-    - - -> Event >= 6.0.1 < 7.0.0
+    - - -> Event >= 6.0.2 < 7.0.0
 ```
 
 Security does not depend on Serializable, Persistence, WiFi, Sockets, ESP-Now, Command or Serial. Those downstream libraries may opt into Security.
@@ -230,7 +230,7 @@ See [ESPRESSIO_DEPENDENCY_CHART.md](ESPRESSIO_DEPENDENCY_CHART.md).
 
 # Testing
 
-Host tests cover generic data-protection round trips, context binding, tamper rejection, malformed envelopes, payload bounds, transport envelope behavior, replay/session handling and secure transport decoration. ESP32 validation continues to compile the supported mbedTLS-backed AEAD implementations.
+Host tests cover generic data-protection round trips, context binding, tamper rejection, malformed envelopes, payload bounds, transport envelope behavior, replay/session handling and secure transport decoration. ESP32 Event-integration validation compiles against Units 0.2.6, Timing 2.2.7, Threads 3.1.6 and Event 6.0.2.
 
 # Changelog
 

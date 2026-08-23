@@ -1,6 +1,6 @@
 {
   "name": "ESPressio-Security",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Authenticated data protection and transport security for the ESPressio Development Platform",
   "keywords": "espressio,security,encryption,aead,aes,gcm,ccm,chacha20,poly1305,data-protection,transport,authentication,replay,observable,event",
   "homepage": "https://espressio.org",
