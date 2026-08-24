@@ -1,10 +1,8 @@
-# ESPressio Dependency Chart — Security 0.4.2
+# ESPressio Dependency Chart — Security 0.4.2 / Current Released Generation
 
 ![ESPressio Library Dependency Chart](ESPRESSIO_DEPENDENCY_CHART.svg)
 
-Arrows point from a consuming library to the ESPressio library it consumes. Solid arrows are required dependencies; dashed arrows are opt-in integrations.
-
-## Security 0.4.2
+## Security dependency position
 
 ```text
 Security 0.4.2
@@ -14,9 +12,9 @@ Security Event integration
     - - -> Event >= 6.0.3 < 7.0.0
 ```
 
-`IDataProtector` / `DataProtector` introduces no additional required dependency. It deliberately reuses Security-owned AEAD, key-provider and random-source abstractions.
+`IDataProtector` / `DataProtector` introduces no additional required dependency. Security remains independent of Serializable, Persistence, WiFi, Sockets, ESP-Now, Command and Serial.
 
-## Serializable 0.11.3 cascade generation
+## Current released generation
 
 ```text
 Observable    3.0.2
@@ -27,34 +25,31 @@ Threads       3.1.7
 Event         6.0.3
 Command       1.0.3
 Security      0.4.2
+Persistence   0.3.2
+Sockets       0.7.3
+ESP-Now       0.8.3
+WiFi          0.2.0
+Serial        0.8.1
 ```
 
-## Downstream cascade
-
-After Security 0.4.2, libraries with Security integrations can consume the completed Event fan-out generation without introducing reverse dependencies:
+## Downstream Security integrations
 
 ```text
 Persistence
     - - -> Serializable >= 0.11.3 < 1.0.0
-    - - -> Security >= 0.4.2 < 1.0.0
+            protected persistence reaches Security through Serializable's protection API
 
 Sockets
-    - - -> Event >= 6.0.3 < 7.0.0
-    - - -> Command >= 1.0.3 < 2.0.0
     - - -> Security >= 0.4.2 < 1.0.0
 
 ESP-Now
-    - - -> Event >= 6.0.3 < 7.0.0
-    - - -> Command >= 1.0.3 < 2.0.0
+    - - -> Security >= 0.4.2 < 1.0.0
+
+WiFi
+    - - -> Security >= 0.4.2 < 1.0.0
+
+Serial
     - - -> Security >= 0.4.2 < 1.0.0
 ```
 
-Security itself remains independent of Serializable, Persistence, WiFi, Sockets, ESP-Now, Command and Serial.
-
-## Dependency-direction invariants
-
-- Security owns cryptographic policy and implementation abstractions.
-- Serializable may opt into Security; Security must not depend back on Serializable.
-- Persistence may consume protected Serializable APIs; Security must not depend on Persistence.
-- WiFi may use lower-order capabilities, but Security must remain unaware of WiFi.
-- Serial remains terminal/downstream; no upstream ESPressio library should depend on Serial.
+Security owns cryptographic policy and implementation abstractions. Serializable may opt into Security; Security must not depend back on Serializable. Serial remains terminal/downstream; ESPressio Tree remains standalone.
