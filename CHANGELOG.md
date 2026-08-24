@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.4.2] - 2026-08-24
+
+### Changed
+
+- Updated the optional ESPressio Event integration baseline to `>=6.0.3 <7.0.0`.
+- Updated ESP32 Event-integration CI to the released Serializable 0.11.3 cascade generation: Units 0.2.7, Timing 2.2.8, Threads 3.1.7 and Event 6.0.3.
+- Preserved required ESPressio Observable at `>=3.0.2 <4.0.0`.
+- Updated package, Arduino and component metadata for Security 0.4.2.
+- Updated README dependency/install guidance and dependency documentation for the current cascade generation.
+
+### Architecture
+
+- ESPressio Observable remains Security's only required ESPressio dependency.
+- Event remains opt-in through Security-owned Event types and `TransportSecurityEventBridge`.
+- Security remains independent of Serializable, Persistence, WiFi, Sockets, ESP-Now, Command and Serial.
+
+### Compatibility
+
+- No Security public API, data-protection, transport-security, encryption, replay-protection, observer or Event-bridge behaviour changes.
+- Existing `ESDP` protected-data and transport-security wire formats are unchanged.
+
+### Tracking
+
+- Closes #21.
+
 ## [0.4.1] - 2026-08-23
 
 ### Changed
@@ -106,9 +131,6 @@ All notable changes to ESPressio Security are documented in this file.
 - Initial ESPressio Security release.
 - Transport-neutral authenticated-encryption envelope for opaque protocol payloads.
 - `IAeadCipher` abstraction and `AeadCipherRegistry` for runtime-selectable cryptographic algorithms.
-- mbedTLS-backed AES-128-GCM and AES-256-GCM implementations.
-- mbedTLS-backed AES-128-CCM and AES-256-CCM implementations.
-- mbedTLS-backed ChaCha20-Poly1305 implementation when available in the selected platform build.
 - `IKeyProvider` abstraction and in-memory `StaticKeyProvider` with best-effort key erasure.
 - `IRandomSource`, portable `StandardRandomSource`, and ESP32 `ESP32RandomSource` implementations.
 - `Disabled`, `Preferred`, and `Required` transport security policies.

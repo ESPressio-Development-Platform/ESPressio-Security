@@ -1,52 +1,52 @@
-# ESPressio Dependency Chart — Security 0.4.1
+# ESPressio Dependency Chart — Security 0.4.2
 
 ![ESPressio Library Dependency Chart](ESPRESSIO_DEPENDENCY_CHART.svg)
 
 Arrows point from a consuming library to the ESPressio library it consumes. Solid arrows are required dependencies; dashed arrows are opt-in integrations.
 
-## Security 0.4.1
+## Security 0.4.2
 
 ```text
-Security 0.4.1
+Security 0.4.2
     -> Observable >= 3.0.2 < 4.0.0
 
 Security Event integration
-    - - -> Event >= 6.0.2 < 7.0.0
+    - - -> Event >= 6.0.3 < 7.0.0
 ```
 
 `IDataProtector` / `DataProtector` introduces no additional required dependency. It deliberately reuses Security-owned AEAD, key-provider and random-source abstractions.
 
-## Corrected Serializable 0.11.2 cascade generation
+## Serializable 0.11.3 cascade generation
 
 ```text
 Observable    3.0.2
-Serializable  0.11.2
-Units         0.2.6
-Timing        2.2.7
-Threads       3.1.6
-Event         6.0.2
-Command       1.0.2
-Security      0.4.1
+Serializable  0.11.3
+Units         0.2.7
+Timing        2.2.8
+Threads       3.1.7
+Event         6.0.3
+Command       1.0.3
+Security      0.4.2
 ```
 
 ## Downstream cascade
 
-After Security 0.4.1, libraries with Security integrations can consume the completed Event fan-out generation without introducing reverse dependencies:
+After Security 0.4.2, libraries with Security integrations can consume the completed Event fan-out generation without introducing reverse dependencies:
 
 ```text
-Persistence 0.3.1
-    - - -> Serializable >= 0.11.2 < 1.0.0
-    - - -> Security >= 0.4.1 < 1.0.0
+Persistence
+    - - -> Serializable >= 0.11.3 < 1.0.0
+    - - -> Security >= 0.4.2 < 1.0.0
 
-Sockets 0.7.2
-    - - -> Event >= 6.0.2 < 7.0.0
-    - - -> Command >= 1.0.2 < 2.0.0
-    - - -> Security >= 0.4.1 < 1.0.0
+Sockets
+    - - -> Event >= 6.0.3 < 7.0.0
+    - - -> Command >= 1.0.3 < 2.0.0
+    - - -> Security >= 0.4.2 < 1.0.0
 
-ESP-Now 0.8.2
-    - - -> Event >= 6.0.2 < 7.0.0
-    - - -> Command >= 1.0.2 < 2.0.0
-    - - -> Security >= 0.4.1 < 1.0.0
+ESP-Now
+    - - -> Event >= 6.0.3 < 7.0.0
+    - - -> Command >= 1.0.3 < 2.0.0
+    - - -> Security >= 0.4.2 < 1.0.0
 ```
 
 Security itself remains independent of Serializable, Persistence, WiFi, Sockets, ESP-Now, Command and Serial.
