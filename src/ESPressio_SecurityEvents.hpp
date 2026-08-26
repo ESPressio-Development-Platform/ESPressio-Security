@@ -7,7 +7,8 @@
 
 namespace ESPressio::Event {
 
-class TransportSecurityConfigurationChangedEvent final : public Event<> {
+class TransportSecurityConfigurationChangedEvent final
+    : public TypedEvent<TransportSecurityConfigurationChangedEvent> {
 public:
     const Security::TransportSecurityConfig Before;
     const Security::TransportSecurityConfig After;
@@ -17,23 +18,27 @@ public:
     ) : Before(before), After(after) {}
 };
 
-class TransportSecuritySessionResetEvent final : public Event<> {
+class TransportSecuritySessionResetEvent final
+    : public TypedEvent<TransportSecuritySessionResetEvent> {
 public:
     const uint64_t PreviousSessionID;
     explicit TransportSecuritySessionResetEvent(uint64_t previousSessionID)
         : PreviousSessionID(previousSessionID) {}
 };
 
-class TransportSecuritySessionEstablishedEvent final : public Event<> {
+class TransportSecuritySessionEstablishedEvent final
+    : public TypedEvent<TransportSecuritySessionEstablishedEvent> {
 public:
     const uint64_t SessionID;
     explicit TransportSecuritySessionEstablishedEvent(uint64_t sessionID)
         : SessionID(sessionID) {}
 };
 
-class TransportSecurityReplayProtectionResetEvent final : public Event<> {};
+class TransportSecurityReplayProtectionResetEvent final
+    : public TypedEvent<TransportSecurityReplayProtectionResetEvent> {};
 
-class TransportSecurityFailureEvent final : public Event<> {
+class TransportSecurityFailureEvent final
+    : public TypedEvent<TransportSecurityFailureEvent> {
 public:
     const Security::SecurityResult Result;
     explicit TransportSecurityFailureEvent(const Security::SecurityResult& result)
