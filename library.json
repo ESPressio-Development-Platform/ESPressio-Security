@@ -10,14 +10,12 @@
   "frameworks": "*",
   "platforms": "*",
   "build": {
-    "flags": ["-std=gnu++17", "-frtti", "-DESPRESSIO_SECURITY"],
-    "unflags": ["-fno-rtti"]
+    "flags": ["-std=gnu++17", "-DESPRESSIO_SECURITY"]
   },
   "dependencies": [
     {
       "name": "ESPressio-Observable",
-      "version": ">=3.0.2 <4.0.0",
-      "url": "https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git"
+      "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git#feature/16-rtti-free-observer-registry"
     }
   ]
 }
