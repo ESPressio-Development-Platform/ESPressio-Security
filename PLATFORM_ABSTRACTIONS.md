@@ -6,9 +6,9 @@ This file records Security changes made during the platform-abstraction tranche 
 
 ### Entropy
 - Removed direct use of the ESP32 `esp_fill_random` API from ESPressio-Security.
-- Added `SystemEntropyRandomSource`, adapting the installed `ESPressio::System::Entropy::IEntropySource` to Security's existing `IRandomSource` contract.
+- Added `RandomSource`, adapting the installed `ESPressio::System::Entropy::IEntropySource` to Security's existing `IRandomSource` contract.
 - Security refuses an installed entropy source that does not declare itself cryptographically suitable.
-- Retained `ESP32RandomSource` as a source-compatible alias to `SystemEntropyRandomSource` during the migration.
+- Removed the obsolete platform-named random-source implementation entirely; no ESP32-specific compatibility alias is retained.
 
 ## Boundary rule
 
