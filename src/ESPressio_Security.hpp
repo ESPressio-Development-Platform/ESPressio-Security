@@ -6,6 +6,7 @@
 #include "ESPressio_IKeyProvider.hpp"
 #include "ESPressio_StaticKeyProvider.hpp"
 #include "ESPressio_IRandomSource.hpp"
+#include "ESPressio_RandomSource.hpp"
 #include "ESPressio_IDataProtector.hpp"
 #include "ESPressio_DataProtector.hpp"
 #include "ESPressio_ReplayWindow.hpp"
@@ -14,6 +15,3 @@
 #include "ESPressio_ISecureTransportCarrier.hpp"
 #include "ESPressio_SecureTransportDecorator.hpp"
 #include "ESPressio_MbedTLSAead.hpp"
-#if defined(ARDUINO_ARCH_ESP32) || defined(ESP_PLATFORM)
-#include "ESPressio_ESP32RandomSource.hpp"
-#endif
