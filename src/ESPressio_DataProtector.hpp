@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include <ESPressio_Memory.hpp>
+
 #include "ESPressio_AeadCipherRegistry.hpp"
 #include "ESPressio_IDataProtector.hpp"
 #include "ESPressio_IKeyProvider.hpp"
@@ -61,20 +63,30 @@ public:
             return SecurityResult::Fail(SecurityError::InvalidKeyLength, "Data-protection key length is invalid");
         }
 
-        std::vector<uint8_t> nonce(cipher->NonceSize());
+        ExternalBytes nonce(cipher->NonceSize());
         if (!_random.Fill(nonce.data(), nonce.size())) {
             StaticKeyProvider::SecureErase(key.Bytes);
             return SecurityResult::Fail(SecurityError::RandomFailure, "Unable to generate data-protection nonce");
         }
 
-        std::vector<uint8_t> header;
-        AppendHeader(header, _config.Algorithm, _config.KeyID,
+        // The serialized header is itself the first part of AEAD AAD. Build it
+        // directly in the AAD buffer instead of materialising header + copied AAD.
+        ExternalBytes aad;
+        aad.reserve(HeaderSize + context.Size);
+        AppendHeader(
+            aad,
+            _config.Algorithm,
+            _config.KeyID,
             static_cast<uint16_t>(nonce.size()),
             static_cast<uint16_t>(cipher->TagSize()),
-            static_cast<uint32_t>(plaintextSize));
-        std::vector<uint8_t> aad = header;
-        if (context.Size != 0) aad.insert(aad.end(), context.Data, context.Data + context.Size);
+            static_cast<uint32_t>(plaintextSize)
+        );
+        if (context.Size != 0) {
+            aad.insert(aad.end(), context.Data, context.Data + context.Size);
+        }
 
+        // IAeadCipher intentionally retains its existing std::vector contract.
+        // These are output buffers rather than duplicated framing scratch.
         std::vector<uint8_t> ciphertext;
         std::vector<uint8_t> tag;
         const bool sealed = cipher->Seal(
@@ -89,8 +101,8 @@ public:
             return SecurityResult::Fail(SecurityError::EncryptionFailed, "Authenticated data protection failed");
         }
 
-        protectedData.reserve(header.size() + nonce.size() + tag.size() + ciphertext.size());
-        protectedData.insert(protectedData.end(), header.begin(), header.end());
+        protectedData.reserve(HeaderSize + nonce.size() + tag.size() + ciphertext.size());
+        protectedData.insert(protectedData.end(), aad.begin(), aad.begin() + HeaderSize);
         protectedData.insert(protectedData.end(), nonce.begin(), nonce.end());
         protectedData.insert(protectedData.end(), tag.begin(), tag.end());
         protectedData.insert(protectedData.end(), ciphertext.begin(), ciphertext.end());
@@ -144,8 +156,12 @@ public:
         const uint8_t* nonce = protectedData + HeaderSize;
         const uint8_t* tag = nonce + decoded.NonceSize;
         const uint8_t* ciphertext = tag + decoded.TagSize;
-        std::vector<uint8_t> aad(protectedData, protectedData + HeaderSize);
-        if (context.Size != 0) aad.insert(aad.end(), context.Data, context.Data + context.Size);
+        ExternalBytes aad;
+        aad.reserve(HeaderSize + context.Size);
+        aad.insert(aad.end(), protectedData, protectedData + HeaderSize);
+        if (context.Size != 0) {
+            aad.insert(aad.end(), context.Data, context.Data + context.Size);
+        }
 
         const bool opened = cipher->Open(
             key.Bytes.data(), key.Bytes.size(),
@@ -164,6 +180,11 @@ public:
     }
 
 private:
+    using ExternalBytes = System::Memory::Vector<
+        uint8_t,
+        System::Memory::MemoryPolicy::ExternalPreferred
+    >;
+
     static constexpr uint8_t FormatVersion = 1;
     static constexpr std::size_t HeaderSize = 18;
 
@@ -176,26 +197,47 @@ private:
         uint32_t PlaintextSize = 0;
     };
 
-    static void AppendU16(std::vector<uint8_t>& out, uint16_t value) {
-        out.push_back(static_cast<uint8_t>(value)); out.push_back(static_cast<uint8_t>(value >> 8u));
+    template<typename TBuffer>
+    static void AppendU16(TBuffer& out, uint16_t value) {
+        out.push_back(static_cast<uint8_t>(value));
+        out.push_back(static_cast<uint8_t>(value >> 8u));
     }
-    static void AppendU32(std::vector<uint8_t>& out, uint32_t value) {
-        for (unsigned shift = 0; shift < 32; shift += 8) out.push_back(static_cast<uint8_t>(value >> shift));
+
+    template<typename TBuffer>
+    static void AppendU32(TBuffer& out, uint32_t value) {
+        for (unsigned shift = 0; shift < 32; shift += 8) {
+            out.push_back(static_cast<uint8_t>(value >> shift));
+        }
     }
+
     static uint16_t ReadU16(const uint8_t* p) {
         return static_cast<uint16_t>(p[0]) | (static_cast<uint16_t>(p[1]) << 8u);
     }
+
     static uint32_t ReadU32(const uint8_t* p) {
         return static_cast<uint32_t>(p[0]) |
             (static_cast<uint32_t>(p[1]) << 8u) |
             (static_cast<uint32_t>(p[2]) << 16u) |
             (static_cast<uint32_t>(p[3]) << 24u);
     }
-    static void AppendHeader(std::vector<uint8_t>& out, AeadAlgorithm algorithm, uint32_t keyID,
-        uint16_t nonceSize, uint16_t tagSize, uint32_t plaintextSize) {
-        out = {'E','S','D','P', FormatVersion, static_cast<uint8_t>(algorithm)};
-        AppendU32(out, keyID); AppendU16(out, nonceSize); AppendU16(out, tagSize); AppendU32(out, plaintextSize);
+
+    template<typename TBuffer>
+    static void AppendHeader(
+        TBuffer& out,
+        AeadAlgorithm algorithm,
+        uint32_t keyID,
+        uint16_t nonceSize,
+        uint16_t tagSize,
+        uint32_t plaintextSize
+    ) {
+        out.clear();
+        out.insert(out.end(), {'E','S','D','P', FormatVersion, static_cast<uint8_t>(algorithm)});
+        AppendU32(out, keyID);
+        AppendU16(out, nonceSize);
+        AppendU16(out, tagSize);
+        AppendU32(out, plaintextSize);
     }
+
     static bool ReadHeader(const uint8_t* data, std::size_t size, Header& out) {
         if (size < HeaderSize || data[0] != 'E' || data[1] != 'S' || data[2] != 'D' || data[3] != 'P') return false;
         out.Version = data[4]; out.Algorithm = static_cast<AeadAlgorithm>(data[5]);
