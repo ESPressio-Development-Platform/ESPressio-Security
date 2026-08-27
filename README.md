@@ -6,6 +6,8 @@ Authenticated data protection, transport security, replay protection and key abs
 
 Security 0.4.2 is a dependency-maintenance release validating the optional Security Event integration against Event 6.0.3 and the released Serializable 0.11.3 cascade. The data-protection and transport-security APIs introduced through 0.4.0 are unchanged.
 
+The active platform-abstraction tranche additionally routes hardware entropy through ESPressio-System. Cryptographic algorithms and security policy remain in this library; target-specific random-number generation belongs to the installed platform provider.
+
 ## Two security responsibilities
 
 Security deliberately separates two related but different concerns:
@@ -28,17 +30,25 @@ Use `IDataProtector` / `DataProtector` when a value simply needs authenticated e
 
 # Installation
 
+During the coordinated platform-abstraction development tranche:
+
 ```ini
 lib_deps =
-    espressio-development-platform/ESPressio-Security@^0.4.2
-    espressio-development-platform/ESPressio-Observable@^3.0.2
-
-build_flags =
-    -std=gnu++17
-    -frtti
+    https://github.com/ESPressio-Development-Platform/ESPressio-System.git#feature/1-system-memory-policy
+    https://github.com/ESPressio-Development-Platform/ESPressio-Security.git#optimisation/23-memory-policy-transient-buffers
 ```
 
-The normal umbrella is:
+On ESP32, the top-level application also installs the ESPressio-ESP32 System providers before Security first needs hardware entropy:
+
+```cpp
+#include <ESPressio_ESP32.hpp>
+
+ESPressio::ESP32Platform::InstallSystemProviders();
+```
+
+For released versions, consume the normal released package/version baselines rather than the development refs above.
+
+The normal Security umbrella is:
 
 ```cpp
 #include <ESPressio_Security.hpp>
@@ -55,6 +65,8 @@ A `DataProtector` composes four existing Security concepts:
 
 The caller does **not** generate or manage nonces.
 
+For platform entropy, use `SystemEntropyRandomSource`. It adapts the installed `ESPressio::System::Entropy` source to Security's `IRandomSource` contract and refuses providers that do not declare themselves cryptographically suitable.
+
 ```cpp
 #include <array>
 #include <ESPressio_Security.hpp>
@@ -64,7 +76,7 @@ using namespace ESPressio::Security;
 AES256GCMCipher aes256;
 AeadCipherRegistry ciphers;
 StaticKeyProvider keys;
-ESP32RandomSource random;
+SystemEntropyRandomSource random;
 
 constexpr std::array<uint8_t, 32> ApplicationKey = {
     /* application-specific bytes */
@@ -83,6 +95,8 @@ DataProtectionConfig protectionConfig {
 
 DataProtector protector(ciphers, keys, random, protectionConfig);
 ```
+
+`ESP32RandomSource` remains a compatibility alias to `SystemEntropyRandomSource` during this migration; it no longer calls an ESP32 API itself.
 
 > **Important:** a key compiled into firmware is convenient and substantially better than persisting plaintext credentials, but it can be recovered by an attacker able to extract and analyse the firmware. Production devices requiring resistance to physical extraction should provide an `IKeyProvider` backed by an appropriate provisioning or hardware-security strategy.
 
@@ -200,26 +214,28 @@ Use `Required` whenever secure transport is a real requirement.
 
 # Dependency model
 
-Required:
+Required during the platform-abstraction tranche:
 
 ```text
-Security 0.4.2
-    -> Observable >= 3.0.2 < 4.0.0
+Security
+    -> System
+    -> Observable
 ```
 
 Optional:
 
 ```text
 Security Event integration
-    - - -> Event >= 6.0.3 < 7.0.0
+    - - -> Event
 ```
 
-Security does not depend on Serializable, Persistence, WiFi, Sockets, ESP-Now, Command or Serial. Those downstream libraries may opt into Security.
+Security does not depend on Persistence, WiFi, Sockets, ESP-Now, Command or Serial. Those downstream libraries may opt into Security. Hardware entropy is supplied by System's installed platform provider rather than by Security itself.
 
 See [ESPRESSIO_DEPENDENCY_CHART.md](ESPRESSIO_DEPENDENCY_CHART.md).
 
 # Operational guidance
 
+- Install a cryptographically suitable platform entropy provider before generating nonces.
 - Prefer authenticated encryption (`DataProtector`) rather than unauthenticated/raw encryption.
 - Never persist or transmit key material inside the protected envelope.
 - Treat compile-time firmware keys as a convenience/security baseline, not as protection against firmware extraction.
@@ -230,7 +246,11 @@ See [ESPRESSIO_DEPENDENCY_CHART.md](ESPRESSIO_DEPENDENCY_CHART.md).
 
 # Testing
 
-Host tests cover generic data-protection round trips, context binding, tamper rejection, malformed envelopes, payload bounds, transport envelope behavior, replay/session handling and secure transport decoration. ESP32 Event-integration validation compiles against Units 0.2.7, Timing 2.2.8, Threads 3.1.7 and Event 6.0.3.
+Host tests cover generic data-protection round trips, context binding, tamper rejection, malformed envelopes, payload bounds, transport envelope behavior, replay/session handling and secure transport decoration. Platform integration tests must additionally provide an installed cryptographically suitable entropy source when nonce generation is exercised.
+
+# Platform abstraction audit
+
+See [PLATFORM_ABSTRACTIONS.md](PLATFORM_ABSTRACTIONS.md) for the hardware/runtime abstraction migration record.
 
 # Changelog
 
