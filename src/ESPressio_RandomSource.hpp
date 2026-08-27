@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ESPressio_Entropy.hpp>
+#include <ESPressio_SystemPlatformEntropy.hpp>
 #include "ESPressio_IRandomSource.hpp"
 
 namespace ESPressio::Security {
