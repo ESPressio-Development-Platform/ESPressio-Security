@@ -2,19 +2,25 @@
 
 #include "ESPressio_IRandomSource.hpp"
 
-#if defined(ARDUINO_ARCH_ESP32) || defined(ESP_PLATFORM)
-#include <esp_system.h>
+#include <ESPressio_Entropy.hpp>
 
 namespace ESPressio::Security {
 
-class ESP32RandomSource final : public IRandomSource {
+class SystemEntropyRandomSource final : public IRandomSource {
 public:
     bool Fill(uint8_t* output, std::size_t size) override {
         if (output == nullptr && size != 0) return false;
-        if (size != 0) esp_fill_random(output, size);
-        return true;
+
+        auto& source = System::Entropy::Source();
+        if (!source.IsCryptographicallySuitable()) return false;
+
+        return static_cast<bool>(source.Fill(output, size));
     }
 };
 
-}
-#endif
+// Compatibility name retained for applications that previously selected the
+// ESP32-specific random source explicitly. Entropy ownership now belongs to
+// ESPressio-System and its installed platform provider.
+using ESP32RandomSource = SystemEntropyRandomSource;
+
+} // namespace ESPressio::Security
