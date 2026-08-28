@@ -2,7 +2,6 @@
 #include <cassert>
 #include <cstdint>
 #include <string>
-#include <vector>
 #include "ESPressio_Security.hpp"
 
 using namespace ESPressio::Security;
@@ -86,12 +85,15 @@ int main() {
     constexpr std::array<uint8_t,16> key = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
     assert(keys.Add(7, AeadAlgorithm::TestOnly, key));
     DeterministicProtectionRandom random;
-    DataProtectionConfig config; config.Algorithm=AeadAlgorithm::TestOnly; config.KeyID=7; config.MaximumPlaintextBytes=128;
+    DataProtectionConfig config;
+    config.Algorithm = AeadAlgorithm::TestOnly;
+    config.KeyID = 7;
+    config.MaximumPlaintextBytes = 128;
     DataProtector protector(registry, keys, random, config);
 
     const std::string contextText = "ESPressio.WiFi.Configuration";
     const DataProtectionContext context(contextText);
-    std::vector<uint8_t> protectedBytes;
+    SecurityBuffer protectedBytes;
     assert(protector.ProtectString("secret-value", protectedBytes, context).Success);
     assert(protectedBytes.size() > std::string("secret-value").size());
 
@@ -100,18 +102,23 @@ int main() {
     assert(restored == "secret-value");
 
     std::string wrongContext;
-    const auto contextFailure = protector.UnprotectString(protectedBytes.data(), protectedBytes.size(), wrongContext, DataProtectionContext("Other.Context"));
+    const auto contextFailure = protector.UnprotectString(
+        protectedBytes.data(), protectedBytes.size(), wrongContext,
+        DataProtectionContext("Other.Context")
+    );
     assert(!contextFailure.Success && contextFailure.Error == SecurityError::AuthenticationFailed);
 
-    auto tampered = protectedBytes; tampered.back() ^= 0x80;
-    std::vector<uint8_t> ignored;
+    auto tampered = protectedBytes;
+    tampered.back() ^= 0x80;
+    SecurityBuffer ignored;
     const auto tamperFailure = protector.Unprotect(tampered.data(), tampered.size(), ignored, context);
     assert(!tamperFailure.Success && tamperFailure.Error == SecurityError::AuthenticationFailed);
 
-    auto badHeader = protectedBytes; badHeader[0] = 'X';
+    auto badHeader = protectedBytes;
+    badHeader[0] = 'X';
     assert(protector.Unprotect(badHeader.data(), badHeader.size(), ignored, context).Error == SecurityError::MalformedEnvelope);
 
-    std::vector<uint8_t> oversized(129, 0x55), output;
+    SecurityBuffer oversized(129, 0x55), output;
     assert(protector.Protect(oversized.data(), oversized.size(), output).Error == SecurityError::BufferLimitExceeded);
 
     return 0;
