@@ -6,9 +6,16 @@ using namespace ESPressio::Security;
 template<typename T>
 void Exercise(std::size_t keySize){
     T cipher;
-    std::vector<uint8_t> key(keySize,1),nonce(cipher.NonceSize(),2),aad={3,4},plain={5,6,7},ct,tag,opened;
-    assert(cipher.Seal(key.data(),key.size(),nonce.data(),nonce.size(),aad.data(),aad.size(),plain.data(),plain.size(),ct,tag));
-    assert(cipher.Open(key.data(),key.size(),nonce.data(),nonce.size(),aad.data(),aad.size(),ct.data(),ct.size(),tag.data(),tag.size(),opened));
+    std::vector<uint8_t> key(keySize,1),nonce(cipher.NonceSize(),2),aad={3,4},plain={5,6,7};
+    std::vector<uint8_t> ct(plain.size()),tag(cipher.TagSize()),opened(plain.size());
+    assert(cipher.Seal(
+        key.data(),key.size(),nonce.data(),nonce.size(),aad.data(),aad.size(),
+        plain.data(),plain.size(),ct.data(),ct.size(),tag.data(),tag.size()
+    ));
+    assert(cipher.Open(
+        key.data(),key.size(),nonce.data(),nonce.size(),aad.data(),aad.size(),
+        ct.data(),ct.size(),tag.data(),tag.size(),opened.data(),opened.size()
+    ));
     assert(opened==plain);
 }
 
