@@ -6,12 +6,19 @@
 #include <utility>
 #include <vector>
 
+#include <ESPressio_Memory.hpp>
+
 namespace ESPressio::Security {
 
 constexpr uint32_t ESPRESSIO_SECURITY_VERSION_MAJOR = 0;
 constexpr uint32_t ESPRESSIO_SECURITY_VERSION_MINOR = 4;
 constexpr uint32_t ESPRESSIO_SECURITY_VERSION_PATCH = 0;
 constexpr const char* ESPRESSIO_SECURITY_VERSION = "0.4.0";
+
+using SecurityBuffer = System::Memory::Vector<
+    uint8_t,
+    System::Memory::MemoryPolicy::ExternalPreferred
+>;
 
 /// <summary>Identifies the authenticated-encryption algorithm used by a protected payload.</summary>
 enum class AeadAlgorithm : uint8_t {
@@ -52,21 +59,15 @@ enum class SecurityError : uint8_t {
 
 /// <summary>Reports the outcome of a security operation together with protection state and diagnostic detail.</summary>
 struct SecurityResult {
-    /// <summary>Indicates whether the operation completed successfully.</summary>
     bool Success = false;
-    /// <summary>Indicates whether the resulting or consumed payload was cryptographically protected.</summary>
     bool Protected = false;
-    /// <summary>Portable error category when the operation fails.</summary>
     SecurityError Error = SecurityError::None;
-    /// <summary>Optional human-readable diagnostic message.</summary>
     std::string Message;
 
-    /// <summary>Creates a successful security result.</summary>
     static SecurityResult Ok(bool protectedPayload = true) {
         return {true, protectedPayload, SecurityError::None, {}};
     }
 
-    /// <summary>Creates a failed security result with an error category and diagnostic message.</summary>
     static SecurityResult Fail(SecurityError error, std::string message) {
         return {false, false, error, std::move(message)};
     }
@@ -74,48 +75,31 @@ struct SecurityResult {
 
 /// <summary>Associates a stable key identifier with its raw key bytes.</summary>
 struct KeyMaterial {
-    /// <summary>Application-defined key identifier carried by protected envelopes.</summary>
     uint32_t KeyID = 0;
-    /// <summary>Raw cryptographic key bytes.</summary>
     std::vector<uint8_t> Bytes;
 };
 
 /// <summary>Configures transport protection policy, outbound identity, limits, and replay handling.</summary>
 struct TransportSecurityConfig {
-    /// <summary>Policy controlling whether transport protection is required.</summary>
     TransportSecurityPolicy Policy = TransportSecurityPolicy::Required;
-    /// <summary>Authenticated-encryption algorithm used for outbound payloads.</summary>
     AeadAlgorithm OutboundAlgorithm = AeadAlgorithm::AES256GCM;
-    /// <summary>Key identifier requested for outbound encryption.</summary>
     uint32_t OutboundKeyID = 1;
-    /// <summary>Stable sender identifier written into protected envelopes.</summary>
     uint64_t SenderID = 0;
-    /// <summary>Session identifier used to separate replay/sequence domains.</summary>
     uint64_t SessionID = 0;
-    /// <summary>Maximum plaintext payload size accepted for protection or unprotection.</summary>
     std::size_t MaximumPlaintextBytes = 16384;
-    /// <summary>Number of recent sequence positions retained by replay protection.</summary>
     std::size_t ReplayWindowSize = 64;
 };
 
 /// <summary>Decoded transport payload plus security metadata recovered from its envelope.</summary>
 struct UnprotectedPayload {
-    /// <summary>Application protocol discriminator associated with the payload.</summary>
     uint8_t Protocol = 0;
-    /// <summary>Key identifier used by the protected envelope.</summary>
     uint32_t KeyID = 0;
-    /// <summary>Sender identifier recovered from the envelope.</summary>
     uint64_t SenderID = 0;
-    /// <summary>Session identifier recovered from the envelope.</summary>
     uint64_t SessionID = 0;
-    /// <summary>Authenticated sender sequence number.</summary>
     uint64_t Sequence = 0;
-    /// <summary>Authenticated-encryption algorithm used by the envelope.</summary>
     AeadAlgorithm Algorithm = AeadAlgorithm::Unknown;
-    /// <summary>Indicates whether the source payload was cryptographically protected.</summary>
     bool Protected = false;
-    /// <summary>Recovered plaintext application payload.</summary>
-    std::vector<uint8_t> Data;
+    SecurityBuffer Data;
 };
 
 }
