@@ -18,10 +18,15 @@
 
 namespace ESPressio::Security {
 
+/// <summary>Applies configurable authenticated transport protection, session sequencing, key lookup, and replay prevention.</summary>
+/// <remarks>The engine is transport-agnostic: callers provide a protocol discriminator and raw payload bytes, while registered AEAD ciphers, key providers, and random sources supply cryptographic primitives.</remarks>
 class TransportSecurity final {
 public:
+    /// <summary>Magic value identifying an ESPressio protected transport envelope.</summary>
     static constexpr uint32_t EnvelopeMagic = 0x53505345u;
+    /// <summary>Current protected transport envelope format version.</summary>
     static constexpr uint8_t EnvelopeVersion = 1;
+    /// <summary>Number of fixed header bytes preceding nonce, ciphertext, and authentication tag.</summary>
     static constexpr std::size_t FixedHeaderSize = 44;
 
 private:
@@ -116,6 +121,11 @@ private:
     static bool Read64(const uint8_t* i,std::size_t s,std::size_t& o,uint64_t& v){if(o+8>s)return false;v=0;for(int n=0;n<8;++n)v|=static_cast<uint64_t>(i[o+n])<<(n*8);o+=8;return true;}
 
 public:
+    /// <summary>Creates a transport-security engine using the supplied cipher registry, key source, random source, and policy.</summary>
+    /// <param name="ciphers">Registry used to resolve configured AEAD algorithms.</param>
+    /// <param name="keys">Key provider used for outbound and inbound key lookup.</param>
+    /// <param name="random">Cryptographically suitable random source used for generated session IDs and nonces.</param>
+    /// <param name="config">Initial transport-security configuration.</param>
     TransportSecurity(AeadCipherRegistry& ciphers, const IKeyProvider& keys, IRandomSource& random, TransportSecurityConfig config = {})
         : _ciphers(ciphers), _keys(keys), _random(random), _config(std::move(config)), _replay(_config.ReplayWindowSize) {
         if (_config.SessionID != 0) {
@@ -124,16 +134,22 @@ public:
         }
     }
 
+    /// <summary>Returns the active transport-security configuration.</summary>
     const TransportSecurityConfig& GetConfig() const noexcept { return _config; }
+    /// <summary>Returns the current outbound session identifier, or zero until a session is established.</summary>
     uint64_t GetSessionID() const noexcept { return _sessionID; }
 
+    /// <summary>Registers an observer for configuration, session, replay-protection, and failure notifications.</summary>
     Observable::ObserverHandlePtr RegisterObserver(ITransportSecurityObserver* observer) {
         return _observable->RegisterObserver(observer);
     }
+    /// <summary>Explicitly unregisters a transport-security observer.</summary>
     void UnregisterObserver(ITransportSecurityObserver* observer) {
         _observable->UnregisterObserver(observer);
     }
 
+    /// <summary>Replaces the active configuration and resets sequence/replay state for the new policy.</summary>
+    /// <remarks>Changing configuration resets the outbound sequence to one, rebuilds the replay window, and emits session reset/established notifications when the configured session identity changes.</remarks>
     void SetConfig(TransportSecurityConfig config) {
         const TransportSecurityConfig before = _config;
         const uint64_t previousSessionID = _sessionID;
@@ -147,11 +163,19 @@ public:
         if (_sessionReady && _sessionID != previousSessionID) _observable->SessionEstablished(_sessionID);
     }
 
+    /// <summary>Clears all retained inbound replay-window state.</summary>
     void ResetReplayProtection() {
         _replay.Reset();
         _observable->ReplayProtectionReset();
     }
 
+    /// <summary>Protects an outbound payload according to the configured security policy.</summary>
+    /// <param name="protocol">Transport/application protocol discriminator authenticated by the envelope.</param>
+    /// <param name="plaintext">Plaintext payload bytes.</param>
+    /// <param name="plaintextSize">Plaintext size in bytes.</param>
+    /// <param name="output">Receives either a protected envelope or, when policy permits fallback, the original plaintext.</param>
+    /// <returns>A detailed security result indicating success, failure, and whether protection was applied.</returns>
+    /// <remarks>Successful protected output carries a session ID, strictly increasing sequence number, random nonce, authenticated fixed header, ciphertext, and AEAD tag. Sensitive key and transient cryptographic buffers are explicitly erased before return where applicable.</remarks>
     SecurityResult Protect(uint8_t protocol, const uint8_t* plaintext, std::size_t plaintextSize, std::vector<uint8_t>& output) {
         output.clear();
         if ((plaintext == nullptr && plaintextSize != 0) || plaintextSize > _config.MaximumPlaintextBytes)
@@ -229,6 +253,13 @@ public:
         return SecurityResult::Ok(true);
     }
 
+    /// <summary>Authenticates and opens an inbound payload according to the configured security policy and replay window.</summary>
+    /// <param name="expectedProtocol">Protocol discriminator expected by the receiving transport.</param>
+    /// <param name="input">Inbound protected envelope or permitted plaintext bytes.</param>
+    /// <param name="inputSize">Inbound byte count.</param>
+    /// <param name="output">Receives authenticated metadata and plaintext on success.</param>
+    /// <returns>A detailed result indicating whether the payload was accepted and whether it was cryptographically protected.</returns>
+    /// <remarks>Replay state is committed only after successful AEAD authentication and protocol validation, so malformed or unauthenticated traffic cannot advance the replay window.</remarks>
     SecurityResult Unprotect(uint8_t expectedProtocol, const uint8_t* input, std::size_t inputSize, UnprotectedPayload& output) {
         output = {};
         if (input == nullptr && inputSize != 0) return ReportFailure(SecurityResult::Fail(SecurityError::InvalidArgument, "Invalid protected input"));
@@ -294,6 +325,7 @@ public:
         return SecurityResult::Ok(true);
     }
 
+    /// <summary>Tests whether an input begins with the ESPressio protected-envelope magic value.</summary>
     static bool LooksProtected(const uint8_t* input, std::size_t inputSize) {
         if (input == nullptr || inputSize < 4) return false;
         return (static_cast<uint32_t>(input[0]) | (static_cast<uint32_t>(input[1])<<8) |
