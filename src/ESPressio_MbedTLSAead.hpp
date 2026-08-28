@@ -41,6 +41,9 @@
 namespace ESPressio::Security {
 
 #if ESPRESSIO_SECURITY_HAS_MBEDTLS_GCM
+/// <summary>mbedTLS-backed AES-GCM authenticated-encryption implementation.</summary>
+/// <typeparam name="KeyBytes">Required AES key size in bytes.</typeparam>
+/// <typeparam name="AlgorithmValue">Portable ESPressio algorithm identifier exposed by the implementation.</typeparam>
 template<std::size_t KeyBytes, AeadAlgorithm AlgorithmValue>
 class MbedTLSAesGcm final : public IAeadCipher {
 public:
@@ -62,11 +65,16 @@ public:
         mbedtls_gcm_free(&ctx); if(!ok)plaintext.clear(); return ok;
     }
 };
+/// <summary>mbedTLS AES-128-GCM cipher implementation.</summary>
 using AES128GCMCipher=MbedTLSAesGcm<16,AeadAlgorithm::AES128GCM>;
+/// <summary>mbedTLS AES-256-GCM cipher implementation.</summary>
 using AES256GCMCipher=MbedTLSAesGcm<32,AeadAlgorithm::AES256GCM>;
 #endif
 
 #if ESPRESSIO_SECURITY_HAS_MBEDTLS_CCM
+/// <summary>mbedTLS-backed AES-CCM authenticated-encryption implementation.</summary>
+/// <typeparam name="KeyBytes">Required AES key size in bytes.</typeparam>
+/// <typeparam name="AlgorithmValue">Portable ESPressio algorithm identifier exposed by the implementation.</typeparam>
 template<std::size_t KeyBytes, AeadAlgorithm AlgorithmValue>
 class MbedTLSAesCcm final : public IAeadCipher {
 public:
@@ -88,11 +96,14 @@ public:
         mbedtls_ccm_free(&ctx); if(!ok)plaintext.clear(); return ok;
     }
 };
+/// <summary>mbedTLS AES-128-CCM cipher implementation.</summary>
 using AES128CCMCipher=MbedTLSAesCcm<16,AeadAlgorithm::AES128CCM>;
+/// <summary>mbedTLS AES-256-CCM cipher implementation.</summary>
 using AES256CCMCipher=MbedTLSAesCcm<32,AeadAlgorithm::AES256CCM>;
 #endif
 
 #if ESPRESSIO_SECURITY_HAS_MBEDTLS_CHACHAPOLY
+/// <summary>mbedTLS-backed ChaCha20-Poly1305 authenticated-encryption implementation.</summary>
 class ChaCha20Poly1305Cipher final : public IAeadCipher {
 public:
     AeadAlgorithm Algorithm() const noexcept override{return AeadAlgorithm::ChaCha20Poly1305;} const char* Name() const noexcept override{return "ChaCha20-Poly1305";}

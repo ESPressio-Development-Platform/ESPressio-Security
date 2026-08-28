@@ -15,14 +15,20 @@
 
 namespace ESPressio::Security {
 
+/// <summary>Configures standalone authenticated data protection.</summary>
 struct DataProtectionConfig {
+    /// <summary>Authenticated-encryption algorithm used when protecting new data.</summary>
     AeadAlgorithm Algorithm = AeadAlgorithm::AES256GCM;
+    /// <summary>Key identifier requested from the key provider.</summary>
     uint32_t KeyID = 1;
+    /// <summary>Maximum plaintext size accepted by the protector.</summary>
     std::size_t MaximumPlaintextBytes = 64u * 1024u;
 };
 
+/// <summary>Protects opaque data in a self-describing authenticated envelope using registered AEAD ciphers.</summary>
 class DataProtector final : public IDataProtector {
 public:
+    /// <summary>Creates a data protector using externally owned cipher, key, and randomness providers.</summary>
     DataProtector(
         AeadCipherRegistry& ciphers,
         const IKeyProvider& keys,
@@ -30,9 +36,12 @@ public:
         DataProtectionConfig config = {}
     ) : _ciphers(ciphers), _keys(keys), _random(random), _config(config) {}
 
+    /// <summary>Gets the active data-protection configuration.</summary>
     const DataProtectionConfig& GetConfig() const noexcept { return _config; }
+    /// <summary>Replaces the data-protection configuration used by subsequent operations.</summary>
     void SetConfig(const DataProtectionConfig& config) { _config = config; }
 
+    /// <inheritdoc/>
     SecurityResult Protect(
         const uint8_t* plaintext,
         std::size_t plaintextSize,
@@ -109,6 +118,7 @@ public:
         return SecurityResult::Ok(true);
     }
 
+    /// <inheritdoc/>
     SecurityResult Unprotect(
         const uint8_t* protectedData,
         std::size_t protectedDataSize,
