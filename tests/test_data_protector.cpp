@@ -26,18 +26,56 @@ public:
     std::size_t NonceSize() const noexcept override { return 12; }
     std::size_t TagSize() const noexcept override { return 16; }
 
-    bool Seal(const uint8_t* key,std::size_t ks,const uint8_t* nonce,std::size_t ns,const uint8_t* aad,std::size_t as,const uint8_t* p,std::size_t ps,std::vector<uint8_t>& c,std::vector<uint8_t>& tag) override {
-        if (ks != 16 || ns != 12) return false;
-        c.resize(ps); for (std::size_t i=0;i<ps;++i) c[i]=p[i]^key[i%ks]^nonce[i%ns]; MakeTag(key,ks,nonce,ns,aad,as,c.data(),c.size(),tag); return true;
+    bool Seal(
+        const uint8_t* key, std::size_t ks,
+        const uint8_t* nonce, std::size_t ns,
+        const uint8_t* aad, std::size_t as,
+        const uint8_t* p, std::size_t ps,
+        uint8_t* c, std::size_t cc,
+        uint8_t* tag, std::size_t tc
+    ) override {
+        if (ks != 16 || ns != 12 || cc < ps || tc < 16) return false;
+        for (std::size_t i = 0; i < ps; ++i) c[i] = p[i] ^ key[i % ks] ^ nonce[i % ns];
+        MakeTag(key, ks, nonce, ns, aad, as, c, ps, tag);
+        return true;
     }
-    bool Open(const uint8_t* key,std::size_t ks,const uint8_t* nonce,std::size_t ns,const uint8_t* aad,std::size_t as,const uint8_t* c,std::size_t cs,const uint8_t* tag,std::size_t ts,std::vector<uint8_t>& p) override {
-        if (ks != 16 || ns != 12 || ts != 16) return false;
-        std::vector<uint8_t> expected; MakeTag(key,ks,nonce,ns,aad,as,c,cs,expected); uint8_t diff=0; for(std::size_t i=0;i<ts;++i) diff|=expected[i]^tag[i]; if(diff) return false;
-        p.resize(cs); for(std::size_t i=0;i<cs;++i) p[i]=c[i]^key[i%ks]^nonce[i%ns]; return true;
+
+    bool Open(
+        const uint8_t* key, std::size_t ks,
+        const uint8_t* nonce, std::size_t ns,
+        const uint8_t* aad, std::size_t as,
+        const uint8_t* c, std::size_t cs,
+        const uint8_t* tag, std::size_t ts,
+        uint8_t* p, std::size_t pc
+    ) override {
+        if (ks != 16 || ns != 12 || ts != 16 || pc < cs) return false;
+        uint8_t expected[16]{};
+        MakeTag(key, ks, nonce, ns, aad, as, c, cs, expected);
+        uint8_t diff = 0;
+        for (std::size_t i = 0; i < ts; ++i) diff |= expected[i] ^ tag[i];
+        if (diff) return false;
+        for (std::size_t i = 0; i < cs; ++i) p[i] = c[i] ^ key[i % ks] ^ nonce[i % ns];
+        return true;
     }
+
 private:
-    static void MakeTag(const uint8_t* key,std::size_t ks,const uint8_t* nonce,std::size_t ns,const uint8_t* aad,std::size_t as,const uint8_t* data,std::size_t ds,std::vector<uint8_t>& tag) {
-        uint32_t h=2166136261u; auto mix=[&](const uint8_t*x,std::size_t n){for(std::size_t i=0;i<n;++i){h^=x[i];h*=16777619u;}}; mix(key,ks);mix(nonce,ns);mix(aad,as);mix(data,ds); tag.resize(16); for(std::size_t i=0;i<tag.size();++i){h^=static_cast<uint32_t>(i*37u+11u);h*=16777619u;tag[i]=static_cast<uint8_t>(h>>((i%4)*8));}
+    static void MakeTag(
+        const uint8_t* key, std::size_t ks,
+        const uint8_t* nonce, std::size_t ns,
+        const uint8_t* aad, std::size_t as,
+        const uint8_t* data, std::size_t ds,
+        uint8_t* tag
+    ) {
+        uint32_t h = 2166136261u;
+        auto mix = [&](const uint8_t* x, std::size_t n) {
+            for (std::size_t i = 0; i < n; ++i) { h ^= x[i]; h *= 16777619u; }
+        };
+        mix(key, ks); mix(nonce, ns); mix(aad, as); mix(data, ds);
+        for (std::size_t i = 0; i < 16; ++i) {
+            h ^= static_cast<uint32_t>(i * 37u + 11u);
+            h *= 16777619u;
+            tag[i] = static_cast<uint8_t>(h >> ((i % 4) * 8));
+        }
     }
 };
 
