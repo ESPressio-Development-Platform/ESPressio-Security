@@ -15,20 +15,14 @@
 
 namespace ESPressio::Security {
 
-/// <summary>Configures standalone authenticated data protection.</summary>
 struct DataProtectionConfig {
-    /// <summary>Authenticated-encryption algorithm used when protecting new data.</summary>
     AeadAlgorithm Algorithm = AeadAlgorithm::AES256GCM;
-    /// <summary>Key identifier requested from the key provider.</summary>
     uint32_t KeyID = 1;
-    /// <summary>Maximum plaintext size accepted by the protector.</summary>
     std::size_t MaximumPlaintextBytes = 64u * 1024u;
 };
 
-/// <summary>Protects opaque data in a self-describing authenticated envelope using registered AEAD ciphers.</summary>
 class DataProtector final : public IDataProtector {
 public:
-    /// <summary>Creates a data protector using externally owned cipher, key, and randomness providers.</summary>
     DataProtector(
         AeadCipherRegistry& ciphers,
         const IKeyProvider& keys,
@@ -36,12 +30,9 @@ public:
         DataProtectionConfig config = {}
     ) : _ciphers(ciphers), _keys(keys), _random(random), _config(config) {}
 
-    /// <summary>Gets the active data-protection configuration.</summary>
     const DataProtectionConfig& GetConfig() const noexcept { return _config; }
-    /// <summary>Replaces the data-protection configuration used by subsequent operations.</summary>
     void SetConfig(const DataProtectionConfig& config) { _config = config; }
 
-    /// <inheritdoc/>
     SecurityResult Protect(
         const uint8_t* plaintext,
         std::size_t plaintextSize,
@@ -78,8 +69,6 @@ public:
             return SecurityResult::Fail(SecurityError::RandomFailure, "Unable to generate data-protection nonce");
         }
 
-        // The serialized header is itself the first part of AEAD AAD. Build it
-        // directly in the AAD buffer instead of materialising header + copied AAD.
         ExternalBytes aad;
         aad.reserve(HeaderSize + context.Size);
         AppendHeader(
@@ -94,31 +83,32 @@ public:
             aad.insert(aad.end(), context.Data, context.Data + context.Size);
         }
 
-        // IAeadCipher intentionally retains its existing std::vector contract.
-        // These are output buffers rather than duplicated framing scratch.
-        std::vector<uint8_t> ciphertext;
-        std::vector<uint8_t> tag;
+        const std::size_t tagOffset = HeaderSize + nonce.size();
+        const std::size_t ciphertextOffset = tagOffset + cipher->TagSize();
+        const std::size_t envelopeSize = ciphertextOffset + plaintextSize;
+
+        protectedData.resize(envelopeSize);
+        std::copy(aad.begin(), aad.begin() + HeaderSize, protectedData.begin());
+        if (!nonce.empty()) {
+            std::copy(nonce.begin(), nonce.end(), protectedData.begin() + HeaderSize);
+        }
+
         const bool sealed = cipher->Seal(
             key.Bytes.data(), key.Bytes.size(),
             nonce.data(), nonce.size(),
             aad.data(), aad.size(),
             plaintext, plaintextSize,
-            ciphertext, tag
+            protectedData.data() + ciphertextOffset, plaintextSize,
+            protectedData.data() + tagOffset, cipher->TagSize()
         );
         StaticKeyProvider::SecureErase(key.Bytes);
-        if (!sealed || tag.size() != cipher->TagSize()) {
+        if (!sealed) {
+            protectedData.clear();
             return SecurityResult::Fail(SecurityError::EncryptionFailed, "Authenticated data protection failed");
         }
-
-        protectedData.reserve(HeaderSize + nonce.size() + tag.size() + ciphertext.size());
-        protectedData.insert(protectedData.end(), aad.begin(), aad.begin() + HeaderSize);
-        protectedData.insert(protectedData.end(), nonce.begin(), nonce.end());
-        protectedData.insert(protectedData.end(), tag.begin(), tag.end());
-        protectedData.insert(protectedData.end(), ciphertext.begin(), ciphertext.end());
         return SecurityResult::Ok(true);
     }
 
-    /// <inheritdoc/>
     SecurityResult Unprotect(
         const uint8_t* protectedData,
         std::size_t protectedDataSize,
@@ -149,6 +139,7 @@ public:
         if (decoded.NonceSize != cipher->NonceSize() || decoded.TagSize != cipher->TagSize()) {
             return SecurityResult::Fail(SecurityError::MalformedEnvelope, "Protected-data nonce or tag size is invalid");
         }
+
         const std::size_t expected = HeaderSize + decoded.NonceSize + decoded.TagSize + decoded.PlaintextSize;
         if (expected != protectedDataSize) {
             return SecurityResult::Fail(SecurityError::MalformedEnvelope, "Protected-data envelope length is invalid");
@@ -166,6 +157,7 @@ public:
         const uint8_t* nonce = protectedData + HeaderSize;
         const uint8_t* tag = nonce + decoded.NonceSize;
         const uint8_t* ciphertext = tag + decoded.TagSize;
+
         ExternalBytes aad;
         aad.reserve(HeaderSize + context.Size);
         aad.insert(aad.end(), protectedData, protectedData + HeaderSize);
@@ -173,16 +165,17 @@ public:
             aad.insert(aad.end(), context.Data, context.Data + context.Size);
         }
 
+        plaintext.resize(decoded.PlaintextSize);
         const bool opened = cipher->Open(
             key.Bytes.data(), key.Bytes.size(),
             nonce, decoded.NonceSize,
             aad.data(), aad.size(),
             ciphertext, decoded.PlaintextSize,
             tag, decoded.TagSize,
-            plaintext
+            plaintext.data(), plaintext.size()
         );
         StaticKeyProvider::SecureErase(key.Bytes);
-        if (!opened || plaintext.size() != decoded.PlaintextSize) {
+        if (!opened) {
             plaintext.clear();
             return SecurityResult::Fail(SecurityError::AuthenticationFailed, "Protected data could not be authenticated or decrypted");
         }
@@ -250,9 +243,13 @@ private:
 
     static bool ReadHeader(const uint8_t* data, std::size_t size, Header& out) {
         if (size < HeaderSize || data[0] != 'E' || data[1] != 'S' || data[2] != 'D' || data[3] != 'P') return false;
-        out.Version = data[4]; out.Algorithm = static_cast<AeadAlgorithm>(data[5]);
-        out.KeyID = ReadU32(data + 6); out.NonceSize = ReadU16(data + 10); out.TagSize = ReadU16(data + 12);
-        out.PlaintextSize = ReadU32(data + 14); return out.KeyID != 0;
+        out.Version = data[4];
+        out.Algorithm = static_cast<AeadAlgorithm>(data[5]);
+        out.KeyID = ReadU32(data + 6);
+        out.NonceSize = ReadU16(data + 10);
+        out.TagSize = ReadU16(data + 12);
+        out.PlaintextSize = ReadU32(data + 14);
+        return out.KeyID != 0;
     }
 
     AeadCipherRegistry& _ciphers;
@@ -261,4 +258,4 @@ private:
     DataProtectionConfig _config;
 };
 
-} // namespace ESPressio::Security
+}
