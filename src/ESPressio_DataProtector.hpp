@@ -1,9 +1,9 @@
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <string>
-#include <vector>
 
 #include <ESPressio_Memory.hpp>
 
@@ -36,7 +36,7 @@ public:
     SecurityResult Protect(
         const uint8_t* plaintext,
         std::size_t plaintextSize,
-        std::vector<uint8_t>& protectedData,
+        SecurityBuffer& protectedData,
         const DataProtectionContext& context = {}
     ) override {
         protectedData.clear();
@@ -63,13 +63,13 @@ public:
             return SecurityResult::Fail(SecurityError::InvalidKeyLength, "Data-protection key length is invalid");
         }
 
-        ExternalBytes nonce(cipher->NonceSize());
+        SecurityBuffer nonce(cipher->NonceSize());
         if (!_random.Fill(nonce.data(), nonce.size())) {
             StaticKeyProvider::SecureErase(key.Bytes);
             return SecurityResult::Fail(SecurityError::RandomFailure, "Unable to generate data-protection nonce");
         }
 
-        ExternalBytes aad;
+        SecurityBuffer aad;
         aad.reserve(HeaderSize + context.Size);
         AppendHeader(
             aad,
@@ -112,7 +112,7 @@ public:
     SecurityResult Unprotect(
         const uint8_t* protectedData,
         std::size_t protectedDataSize,
-        std::vector<uint8_t>& plaintext,
+        SecurityBuffer& plaintext,
         const DataProtectionContext& context = {}
     ) override {
         plaintext.clear();
@@ -158,7 +158,7 @@ public:
         const uint8_t* tag = nonce + decoded.NonceSize;
         const uint8_t* ciphertext = tag + decoded.TagSize;
 
-        ExternalBytes aad;
+        SecurityBuffer aad;
         aad.reserve(HeaderSize + context.Size);
         aad.insert(aad.end(), protectedData, protectedData + HeaderSize);
         if (context.Size != 0) {
@@ -183,11 +183,6 @@ public:
     }
 
 private:
-    using ExternalBytes = System::Memory::Vector<
-        uint8_t,
-        System::Memory::MemoryPolicy::ExternalPreferred
-    >;
-
     static constexpr uint8_t FormatVersion = 1;
     static constexpr std::size_t HeaderSize = 18;
 
