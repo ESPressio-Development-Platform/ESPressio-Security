@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <functional>
 #include <utility>
-#include <vector>
 
 #include "ESPressio_ISecureTransportCarrier.hpp"
 #include "ESPressio_TransportSecurity.hpp"
@@ -37,8 +36,9 @@ public:
     /// <param name="size">Plaintext payload size in bytes.</param>
     /// <param name="result">Optional destination for the protection result.</param>
     /// <returns><c>true</c> only when protection succeeds and the carrier accepts the secured envelope.</returns>
+    /// <remarks>The transient protected envelope uses the common externally preferred Security buffer and therefore does not compete with internal/DMA-capable RAM.</remarks>
     bool Send(uint8_t protocol, const uint8_t* data, std::size_t size, SecurityResult* result = nullptr) {
-        std::vector<uint8_t> secured;
+        SecurityBuffer secured;
         SecurityResult current = _security.Protect(protocol, data, size, secured);
         if (result != nullptr) *result = current;
         if (!current.Success) return false;
