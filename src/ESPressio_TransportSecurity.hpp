@@ -6,7 +6,6 @@
 #include <limits>
 #include <memory>
 #include <utility>
-#include <vector>
 
 #include <ESPressio_Memory.hpp>
 #include <ESPressio_ThreadSafeObservable.hpp>
@@ -195,11 +194,19 @@ public:
         _observable->ReplayProtectionReset();
     }
 
+    /// <summary>Protects a transport payload into caller-selected contiguous byte storage.</summary>
+    /// <typeparam name="TBuffer">Vector-compatible byte buffer supporting clear, assign, resize, begin and data operations. Its allocator controls final envelope placement.</typeparam>
+    /// <param name="protocol">Application protocol identifier authenticated into the envelope.</param>
+    /// <param name="plaintext">Plaintext bytes, or null only when <paramref name="plaintextSize"/> is zero.</param>
+    /// <param name="plaintextSize">Number of plaintext bytes to protect.</param>
+    /// <param name="output">Destination buffer receiving the protected envelope.</param>
+    /// <returns>The protection result and whether the returned payload is cryptographically protected.</returns>
+    template<typename TBuffer>
     SecurityResult Protect(
         uint8_t protocol,
         const uint8_t* plaintext,
         std::size_t plaintextSize,
-        std::vector<uint8_t>& output
+        TBuffer& output
     ) {
         output.clear();
         if ((plaintext == nullptr && plaintextSize != 0) || plaintextSize > _config.MaximumPlaintextBytes) {
