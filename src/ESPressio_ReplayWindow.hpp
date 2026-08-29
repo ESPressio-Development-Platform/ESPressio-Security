@@ -3,11 +3,12 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <vector>
+#include <ESPressio_Memory.hpp>
 
 namespace ESPressio::Security {
 
 /// <summary>Tracks recently accepted authenticated sequence numbers to reject replayed transport payloads.</summary>
+/// <remarks>Replay-domain bookkeeping uses ESPressio System ExternalPreferred storage because authenticated sequence history is persistent metadata that does not require internal or DMA-capable RAM.</remarks>
 class ReplayWindow {
 public:
     /// <summary>Creates a replay window clamped to between one and 64 sequence positions.</summary>
@@ -60,7 +61,10 @@ private:
     };
 
     std::size_t _windowSize;
-    std::vector<State> _states;
+    System::Memory::Vector<
+        State,
+        System::Memory::MemoryPolicy::ExternalPreferred
+    > _states;
 
     const State* Find(uint64_t senderID, uint32_t keyID, uint64_t sessionID) const {
         auto found = std::find_if(_states.begin(), _states.end(), [&](const State& s) {
