@@ -26,10 +26,8 @@ public:
     static constexpr std::size_t FixedHeaderSize = 44;
 
 private:
-    using ExternalBytes = System::Memory::Vector<
-        uint8_t,
-        System::Memory::MemoryPolicy::ExternalPreferred
-    >;
+    static constexpr auto ExternalPreferred =
+        System::Memory::MemoryPolicy::ExternalPreferred;
 
     class SecurityObservable final : public Observable::ThreadSafeObservable {
     private:
@@ -80,14 +78,24 @@ private:
     uint64_t _sessionID = 0;
     uint64_t _nextSequence = 1;
     bool _sessionReady = false;
-    std::shared_ptr<SecurityObservable> _observable =
-        System::Memory::MakeShared<
-            SecurityObservable,
-            System::Memory::MemoryPolicy::ExternalPreferred
-        >();
+    std::shared_ptr<SecurityObservable> _observable;
+
+    /// <summary>Lazily materializes observer bookkeeping after the platform memory provider is installed.</summary>
+    bool EnsureObservable() noexcept {
+        if (_observable) return true;
+        try {
+            _observable = System::Memory::MakeShared<
+                SecurityObservable,
+                ExternalPreferred
+            >();
+            return static_cast<bool>(_observable);
+        } catch (...) {
+            return false;
+        }
+    }
 
     SecurityResult ReportFailure(SecurityResult result) {
-        _observable->Failure(result);
+        if (EnsureObservable()) _observable->Failure(result);
         return result;
     }
 
@@ -96,7 +104,7 @@ private:
         if (_config.SessionID != 0) {
             _sessionID = _config.SessionID;
             _sessionReady = true;
-            _observable->SessionEstablished(_sessionID);
+            if (EnsureObservable()) _observable->SessionEstablished(_sessionID);
             return true;
         }
         for (unsigned attempt = 0; attempt < 4; ++attempt) {
@@ -105,7 +113,7 @@ private:
             if (candidate != 0) {
                 _sessionID = candidate;
                 _sessionReady = true;
-                _observable->SessionEstablished(_sessionID);
+                if (EnsureObservable()) _observable->SessionEstablished(_sessionID);
                 return true;
             }
         }
@@ -170,10 +178,11 @@ public:
     uint64_t GetSessionID() const noexcept { return _sessionID; }
 
     Observable::ObserverHandlePtr RegisterObserver(ITransportSecurityObserver* observer) {
+        if (observer == nullptr || !EnsureObservable()) return {};
         return _observable->RegisterObserver(observer);
     }
     void UnregisterObserver(ITransportSecurityObserver* observer) {
-        _observable->UnregisterObserver(observer);
+        if (_observable) _observable->UnregisterObserver(observer);
     }
 
     void SetConfig(TransportSecurityConfig config) {
@@ -184,23 +193,26 @@ public:
         _nextSequence = 1;
         _sessionID = _config.SessionID;
         _sessionReady = _sessionID != 0;
-        _observable->ConfigurationChanged(before, _config);
-        if (previousSessionID != 0 && previousSessionID != _sessionID) _observable->SessionReset(previousSessionID);
-        if (_sessionReady && _sessionID != previousSessionID) _observable->SessionEstablished(_sessionID);
+        if (EnsureObservable()) {
+            _observable->ConfigurationChanged(before, _config);
+            if (previousSessionID != 0 && previousSessionID != _sessionID) _observable->SessionReset(previousSessionID);
+            if (_sessionReady && _sessionID != previousSessionID) _observable->SessionEstablished(_sessionID);
+        }
     }
 
     void ResetReplayProtection() {
         _replay.Reset();
-        _observable->ReplayProtectionReset();
+        if (EnsureObservable()) _observable->ReplayProtectionReset();
     }
 
     /// <summary>Protects a transport payload into caller-selected contiguous byte storage.</summary>
-    /// <typeparam name="TBuffer">Vector-compatible byte buffer supporting clear, assign, resize, begin and data operations. Its allocator controls final envelope placement.</typeparam>
+    /// <typeparam name="TBuffer">Vector-compatible byte buffer supporting clear, reserve, resize, begin and data operations. Its allocator controls final envelope placement.</typeparam>
     /// <param name="protocol">Application protocol identifier authenticated into the envelope.</param>
     /// <param name="plaintext">Plaintext bytes, or null only when <paramref name="plaintextSize"/> is zero.</param>
     /// <param name="plaintextSize">Number of plaintext bytes to protect.</param>
     /// <param name="output">Destination buffer receiving the protected envelope.</param>
     /// <returns>The protection result and whether the returned payload is cryptographically protected.</returns>
+    /// <remarks>The fixed header and nonce are constructed directly in final output storage. No separate header/nonce buffers are allocated or copied.</remarks>
     template<typename TBuffer>
     SecurityResult Protect(
         uint8_t protocol,
@@ -246,46 +258,61 @@ public:
             return ReportFailure(SecurityResult::Fail(SecurityError::SequenceExhausted, "Outbound sequence exhausted; establish a new session before continuing"));
         }
 
-        const uint64_t sequence = _nextSequence++;
-        ExternalBytes nonce(cipher->NonceSize());
-        if (!_random.Fill(nonce.data(), nonce.size())) {
+        const std::size_t nonceSize = cipher->NonceSize();
+        const std::size_t tagSize = cipher->TagSize();
+        if (nonceSize > 0xFFu || tagSize > 0xFFu || plaintextSize > 0xFFFFFFFFu) {
             SecureErase(key.Bytes);
-            SecureErase(nonce);
+            return ReportFailure(SecurityResult::Fail(SecurityError::BufferLimitExceeded, "Transport security envelope fields exceed wire-format limits"));
+        }
+
+        const uint64_t sequence = _nextSequence++;
+        const std::size_t ciphertextOffset = FixedHeaderSize + nonceSize;
+        const std::size_t tagOffset = ciphertextOffset + plaintextSize;
+        const std::size_t totalSize = tagOffset + tagSize;
+
+        try {
+            output.reserve(totalSize);
+            Append32(output, EnvelopeMagic);
+            output.push_back(EnvelopeVersion);
+            output.push_back(static_cast<uint8_t>(cipher->Algorithm()));
+            output.push_back(0);
+            output.push_back(protocol);
+            Append32(output, _config.OutboundKeyID);
+            Append64(output, _config.SenderID);
+            Append64(output, _sessionID);
+            Append64(output, sequence);
+            output.push_back(static_cast<uint8_t>(nonceSize));
+            output.push_back(static_cast<uint8_t>(tagSize));
+            Append16(output, 0);
+            Append32(output, static_cast<uint32_t>(plaintextSize));
+            if (output.size() != FixedHeaderSize) {
+                SecureErase(key.Bytes);
+                SecureErase(output);
+                return ReportFailure(SecurityResult::Fail(SecurityError::MalformedEnvelope, "Transport security header size is inconsistent"));
+            }
+            output.resize(totalSize);
+        } catch (...) {
+            SecureErase(key.Bytes);
+            SecureErase(output);
+            return ReportFailure(SecurityResult::Fail(SecurityError::BufferLimitExceeded, "Protected output allocation failed"));
+        }
+
+        uint8_t* const nonce = output.data() + FixedHeaderSize;
+        if (!_random.Fill(nonce, nonceSize)) {
+            SecureErase(key.Bytes);
+            SecureErase(output);
             return ReportFailure(SecurityResult::Fail(SecurityError::RandomFailure, "Cryptographic nonce generation failed"));
         }
 
-        ExternalBytes header;
-        header.reserve(FixedHeaderSize);
-        Append32(header, EnvelopeMagic);
-        header.push_back(EnvelopeVersion);
-        header.push_back(static_cast<uint8_t>(cipher->Algorithm()));
-        header.push_back(0);
-        header.push_back(protocol);
-        Append32(header, _config.OutboundKeyID);
-        Append64(header, _config.SenderID);
-        Append64(header, _sessionID);
-        Append64(header, sequence);
-        header.push_back(static_cast<uint8_t>(nonce.size()));
-        header.push_back(static_cast<uint8_t>(cipher->TagSize()));
-        Append16(header, 0);
-        Append32(header, static_cast<uint32_t>(plaintextSize));
-
-        const std::size_t ciphertextOffset = header.size() + nonce.size();
-        const std::size_t tagOffset = ciphertextOffset + plaintextSize;
-        output.resize(tagOffset + cipher->TagSize());
-        std::copy(header.begin(), header.end(), output.begin());
-        std::copy(nonce.begin(), nonce.end(), output.begin() + header.size());
-
         const bool encrypted = cipher->Seal(
             key.Bytes.data(), key.Bytes.size(),
-            nonce.data(), nonce.size(),
-            header.data(), header.size(),
+            nonce, nonceSize,
+            output.data(), FixedHeaderSize,
             plaintext, plaintextSize,
             output.data() + ciphertextOffset, plaintextSize,
-            output.data() + tagOffset, cipher->TagSize()
+            output.data() + tagOffset, tagSize
         );
         SecureErase(key.Bytes);
-        SecureErase(nonce);
         if (!encrypted) {
             SecureErase(output);
             return ReportFailure(SecurityResult::Fail(SecurityError::EncryptionFailed, "AEAD encryption failed"));
