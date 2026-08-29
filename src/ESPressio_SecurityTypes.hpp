@@ -85,11 +85,19 @@ struct SecurityResult {
     }
 };
 
-/// <summary>Associates a stable key identifier with its raw key bytes.</summary>
-/// <remarks>Key bytes use externally preferred non-DMA storage; callers requiring capability-specific memory must copy only at that explicit platform boundary.</remarks>
-struct KeyMaterial {
+/// <summary>Non-owning view of key bytes retained by a key provider.</summary>
+/// <remarks>
+/// The view avoids allocating and copying cryptographic key material for every protection operation. The referenced
+/// bytes remain owned by the provider and are valid only until that provider is mutated or destroyed. Callers must
+/// consume the view synchronously and must never retain, modify, or release its data.
+/// </remarks>
+struct KeyMaterialView {
     uint32_t KeyID = 0;
-    SecurityBuffer Bytes;
+    const uint8_t* Data = nullptr;
+    std::size_t Size = 0;
+
+    /// <summary>Returns whether the view contains no key bytes.</summary>
+    constexpr bool Empty() const noexcept { return Data == nullptr || Size == 0; }
 };
 
 /// <summary>Configures transport protection policy, outbound identity, limits, and replay handling.</summary>
