@@ -2,7 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <string>
+#include <string_view>
 
 #include "ESPressio_SecurityTypes.hpp"
 
@@ -18,7 +18,7 @@ struct DataProtectionContext {
     explicit DataProtectionContext(const char* text)
         : Data(reinterpret_cast<const uint8_t*>(text)),
           Size(text == nullptr ? 0 : std::char_traits<char>::length(text)) {}
-    explicit DataProtectionContext(const std::string& text)
+    explicit DataProtectionContext(std::string_view text)
         : Data(reinterpret_cast<const uint8_t*>(text.data())), Size(text.size()) {}
 };
 
@@ -41,8 +41,9 @@ public:
         const DataProtectionContext& context = {}
     ) = 0;
 
+    /// <summary>Protects a borrowed string view without constructing an intermediate owning string.</summary>
     SecurityResult ProtectString(
-        const std::string& plaintext,
+        std::string_view plaintext,
         SecurityBuffer& protectedData,
         const DataProtectionContext& context = {}
     ) {
@@ -54,10 +55,14 @@ public:
         );
     }
 
+    /// <summary>Unprotects text directly into caller-selected string storage.</summary>
+    /// <typeparam name="TString">String-like destination supporting <c>assign(const char*, size_t)</c>.</typeparam>
+    /// <remarks>Using <c>SecurityString</c> keeps the recovered text in externally preferred memory; standard strings remain available at explicit application boundaries.</remarks>
+    template<typename TString>
     SecurityResult UnprotectString(
         const uint8_t* protectedData,
         std::size_t protectedDataSize,
-        std::string& plaintext,
+        TString& plaintext,
         const DataProtectionContext& context = {}
     ) {
         SecurityBuffer bytes;
