@@ -63,40 +63,49 @@ public:
             return SecurityResult::Fail(SecurityError::InvalidKeyLength, "Data-protection key length is invalid");
         }
 
-        SecurityBuffer nonce(cipher->NonceSize());
-        if (!_random.Fill(nonce.data(), nonce.size())) {
-            StaticKeyProvider::SecureErase(key.Bytes);
-            return SecurityResult::Fail(SecurityError::RandomFailure, "Unable to generate data-protection nonce");
-        }
-
-        SecurityBuffer aad;
-        aad.reserve(HeaderSize + context.Size);
-        AppendHeader(
-            aad,
-            _config.Algorithm,
-            _config.KeyID,
-            static_cast<uint16_t>(nonce.size()),
-            static_cast<uint16_t>(cipher->TagSize()),
-            static_cast<uint32_t>(plaintextSize)
-        );
-        if (context.Size != 0) {
-            aad.insert(aad.end(), context.Data, context.Data + context.Size);
-        }
-
-        const std::size_t tagOffset = HeaderSize + nonce.size();
+        const std::size_t nonceSize = cipher->NonceSize();
+        const std::size_t tagOffset = HeaderSize + nonceSize;
         const std::size_t ciphertextOffset = tagOffset + cipher->TagSize();
         const std::size_t envelopeSize = ciphertextOffset + plaintextSize;
 
+        // Allocate the final externally-preferred envelope once. The nonce is
+        // generated directly into its final location rather than into a second
+        // temporary vector that would subsequently be copied here.
         protectedData.resize(envelopeSize);
-        std::copy(aad.begin(), aad.begin() + HeaderSize, protectedData.begin());
-        if (!nonce.empty()) {
-            std::copy(nonce.begin(), nonce.end(), protectedData.begin() + HeaderSize);
+        WriteHeader(
+            protectedData.data(),
+            _config.Algorithm,
+            _config.KeyID,
+            static_cast<uint16_t>(nonceSize),
+            static_cast<uint16_t>(cipher->TagSize()),
+            static_cast<uint32_t>(plaintextSize)
+        );
+
+        uint8_t* nonce = protectedData.data() + HeaderSize;
+        if (!_random.Fill(nonce, nonceSize)) {
+            StaticKeyProvider::SecureErase(key.Bytes);
+            protectedData.clear();
+            return SecurityResult::Fail(SecurityError::RandomFailure, "Unable to generate data-protection nonce");
+        }
+
+        // The fixed header already occupies contiguous final storage and can be
+        // authenticated in place. Only callers supplying additional context need
+        // a combined AAD scratch buffer.
+        SecurityBuffer aad;
+        const uint8_t* aadData = protectedData.data();
+        std::size_t aadSize = HeaderSize;
+        if (context.Size != 0) {
+            aad.reserve(HeaderSize + context.Size);
+            aad.insert(aad.end(), protectedData.begin(), protectedData.begin() + HeaderSize);
+            aad.insert(aad.end(), context.Data, context.Data + context.Size);
+            aadData = aad.data();
+            aadSize = aad.size();
         }
 
         const bool sealed = cipher->Seal(
             key.Bytes.data(), key.Bytes.size(),
-            nonce.data(), nonce.size(),
-            aad.data(), aad.size(),
+            nonce, nonceSize,
+            aadData, aadSize,
             plaintext, plaintextSize,
             protectedData.data() + ciphertextOffset, plaintextSize,
             protectedData.data() + tagOffset, cipher->TagSize()
@@ -159,17 +168,21 @@ public:
         const uint8_t* ciphertext = tag + decoded.TagSize;
 
         SecurityBuffer aad;
-        aad.reserve(HeaderSize + context.Size);
-        aad.insert(aad.end(), protectedData, protectedData + HeaderSize);
+        const uint8_t* aadData = protectedData;
+        std::size_t aadSize = HeaderSize;
         if (context.Size != 0) {
+            aad.reserve(HeaderSize + context.Size);
+            aad.insert(aad.end(), protectedData, protectedData + HeaderSize);
             aad.insert(aad.end(), context.Data, context.Data + context.Size);
+            aadData = aad.data();
+            aadSize = aad.size();
         }
 
         plaintext.resize(decoded.PlaintextSize);
         const bool opened = cipher->Open(
             key.Bytes.data(), key.Bytes.size(),
             nonce, decoded.NonceSize,
-            aad.data(), aad.size(),
+            aadData, aadSize,
             ciphertext, decoded.PlaintextSize,
             tag, decoded.TagSize,
             plaintext.data(), plaintext.size()
@@ -195,16 +208,14 @@ private:
         uint32_t PlaintextSize = 0;
     };
 
-    template<typename TBuffer>
-    static void AppendU16(TBuffer& out, uint16_t value) {
-        out.push_back(static_cast<uint8_t>(value));
-        out.push_back(static_cast<uint8_t>(value >> 8u));
+    static void WriteU16(uint8_t* out, uint16_t value) noexcept {
+        out[0] = static_cast<uint8_t>(value);
+        out[1] = static_cast<uint8_t>(value >> 8u);
     }
 
-    template<typename TBuffer>
-    static void AppendU32(TBuffer& out, uint32_t value) {
+    static void WriteU32(uint8_t* out, uint32_t value) noexcept {
         for (unsigned shift = 0; shift < 32; shift += 8) {
-            out.push_back(static_cast<uint8_t>(value >> shift));
+            *out++ = static_cast<uint8_t>(value >> shift);
         }
     }
 
@@ -219,21 +230,24 @@ private:
             (static_cast<uint32_t>(p[3]) << 24u);
     }
 
-    template<typename TBuffer>
-    static void AppendHeader(
-        TBuffer& out,
+    static void WriteHeader(
+        uint8_t* out,
         AeadAlgorithm algorithm,
         uint32_t keyID,
         uint16_t nonceSize,
         uint16_t tagSize,
         uint32_t plaintextSize
-    ) {
-        out.clear();
-        out.insert(out.end(), {'E','S','D','P', FormatVersion, static_cast<uint8_t>(algorithm)});
-        AppendU32(out, keyID);
-        AppendU16(out, nonceSize);
-        AppendU16(out, tagSize);
-        AppendU32(out, plaintextSize);
+    ) noexcept {
+        out[0] = 'E';
+        out[1] = 'S';
+        out[2] = 'D';
+        out[3] = 'P';
+        out[4] = FormatVersion;
+        out[5] = static_cast<uint8_t>(algorithm);
+        WriteU32(out + 6, keyID);
+        WriteU16(out + 10, nonceSize);
+        WriteU16(out + 12, tagSize);
+        WriteU32(out + 14, plaintextSize);
     }
 
     static bool ReadHeader(const uint8_t* data, std::size_t size, Header& out) {
