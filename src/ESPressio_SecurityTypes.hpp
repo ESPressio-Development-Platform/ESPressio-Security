@@ -2,9 +2,8 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <string>
+#include <string_view>
 #include <utility>
-#include <vector>
 
 #include <ESPressio_Memory.hpp>
 
@@ -15,8 +14,14 @@ constexpr uint32_t ESPRESSIO_SECURITY_VERSION_MINOR = 4;
 constexpr uint32_t ESPRESSIO_SECURITY_VERSION_PATCH = 0;
 constexpr const char* ESPRESSIO_SECURITY_VERSION = "0.4.0";
 
+/// <summary>Externally preferred byte storage used for non-DMA security payload and key material.</summary>
 using SecurityBuffer = System::Memory::Vector<
     uint8_t,
+    System::Memory::MemoryPolicy::ExternalPreferred
+>;
+
+/// <summary>Externally preferred text storage used for security diagnostics.</summary>
+using SecurityString = System::Memory::String<
     System::Memory::MemoryPolicy::ExternalPreferred
 >;
 
@@ -62,21 +67,29 @@ struct SecurityResult {
     bool Success = false;
     bool Protected = false;
     SecurityError Error = SecurityError::None;
-    std::string Message;
+    SecurityString Message;
 
+    /// <summary>Creates a successful security result without allocating diagnostic text.</summary>
     static SecurityResult Ok(bool protectedPayload = true) {
         return {true, protectedPayload, SecurityError::None, {}};
     }
 
-    static SecurityResult Fail(SecurityError error, std::string message) {
-        return {false, false, error, std::move(message)};
+    /// <summary>Creates a failed result with diagnostic text retained in externally preferred storage.</summary>
+    static SecurityResult Fail(SecurityError error, std::string_view message) {
+        SecurityResult result;
+        result.Success = false;
+        result.Protected = false;
+        result.Error = error;
+        result.Message.assign(message.data(), message.size());
+        return result;
     }
 };
 
 /// <summary>Associates a stable key identifier with its raw key bytes.</summary>
+/// <remarks>Key bytes use externally preferred non-DMA storage; callers requiring capability-specific memory must copy only at that explicit platform boundary.</remarks>
 struct KeyMaterial {
     uint32_t KeyID = 0;
-    std::vector<uint8_t> Bytes;
+    SecurityBuffer Bytes;
 };
 
 /// <summary>Configures transport protection policy, outbound identity, limits, and replay handling.</summary>
