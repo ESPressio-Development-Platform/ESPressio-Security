@@ -11,7 +11,6 @@
 #include "ESPressio_IDataProtector.hpp"
 #include "ESPressio_IKeyProvider.hpp"
 #include "ESPressio_IRandomSource.hpp"
-#include "ESPressio_StaticKeyProvider.hpp"
 
 namespace ESPressio::Security {
 
@@ -54,12 +53,11 @@ public:
             return SecurityResult::Fail(SecurityError::UnsupportedAlgorithm, "Requested data-protection algorithm is unavailable");
         }
 
-        KeyMaterial key;
+        KeyMaterialView key;
         if (!_keys.GetKey(_config.KeyID, _config.Algorithm, key)) {
             return SecurityResult::Fail(SecurityError::MissingKey, "Data-protection key is unavailable");
         }
-        if (key.Bytes.size() != cipher->KeySize()) {
-            StaticKeyProvider::SecureErase(key.Bytes);
+        if (key.Size != cipher->KeySize()) {
             return SecurityResult::Fail(SecurityError::InvalidKeyLength, "Data-protection key length is invalid");
         }
 
@@ -83,7 +81,6 @@ public:
 
         uint8_t* nonce = protectedData.data() + HeaderSize;
         if (!_random.Fill(nonce, nonceSize)) {
-            StaticKeyProvider::SecureErase(key.Bytes);
             protectedData.clear();
             return SecurityResult::Fail(SecurityError::RandomFailure, "Unable to generate data-protection nonce");
         }
@@ -103,14 +100,13 @@ public:
         }
 
         const bool sealed = cipher->Seal(
-            key.Bytes.data(), key.Bytes.size(),
+            key.Data, key.Size,
             nonce, nonceSize,
             aadData, aadSize,
             plaintext, plaintextSize,
             protectedData.data() + ciphertextOffset, plaintextSize,
             protectedData.data() + tagOffset, cipher->TagSize()
         );
-        StaticKeyProvider::SecureErase(key.Bytes);
         if (!sealed) {
             protectedData.clear();
             return SecurityResult::Fail(SecurityError::EncryptionFailed, "Authenticated data protection failed");
@@ -154,12 +150,11 @@ public:
             return SecurityResult::Fail(SecurityError::MalformedEnvelope, "Protected-data envelope length is invalid");
         }
 
-        KeyMaterial key;
+        KeyMaterialView key;
         if (!_keys.GetKey(decoded.KeyID, decoded.Algorithm, key)) {
             return SecurityResult::Fail(SecurityError::MissingKey, "Protected-data key is unavailable");
         }
-        if (key.Bytes.size() != cipher->KeySize()) {
-            StaticKeyProvider::SecureErase(key.Bytes);
+        if (key.Size != cipher->KeySize()) {
             return SecurityResult::Fail(SecurityError::InvalidKeyLength, "Protected-data key length is invalid");
         }
 
@@ -180,14 +175,13 @@ public:
 
         plaintext.resize(decoded.PlaintextSize);
         const bool opened = cipher->Open(
-            key.Bytes.data(), key.Bytes.size(),
+            key.Data, key.Size,
             nonce, decoded.NonceSize,
             aadData, aadSize,
             ciphertext, decoded.PlaintextSize,
             tag, decoded.TagSize,
             plaintext.data(), plaintext.size()
         );
-        StaticKeyProvider::SecureErase(key.Bytes);
         if (!opened) {
             plaintext.clear();
             return SecurityResult::Fail(SecurityError::AuthenticationFailed, "Protected data could not be authenticated or decrypted");
