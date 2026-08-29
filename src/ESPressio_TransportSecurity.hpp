@@ -80,7 +80,7 @@ private:
     bool _sessionReady = false;
     std::shared_ptr<SecurityObservable> _observable;
 
-    /// <summary>Lazily materializes observer bookkeeping after the platform memory provider is installed.</summary>
+    /// <summary>Materializes observer bookkeeping only when an observer is explicitly registered.</summary>
     bool EnsureObservable() noexcept {
         if (_observable) return true;
         try {
@@ -95,7 +95,7 @@ private:
     }
 
     SecurityResult ReportFailure(SecurityResult result) {
-        if (EnsureObservable()) _observable->Failure(result);
+        if (_observable) _observable->Failure(result);
         return result;
     }
 
@@ -104,7 +104,7 @@ private:
         if (_config.SessionID != 0) {
             _sessionID = _config.SessionID;
             _sessionReady = true;
-            if (EnsureObservable()) _observable->SessionEstablished(_sessionID);
+            if (_observable) _observable->SessionEstablished(_sessionID);
             return true;
         }
         for (unsigned attempt = 0; attempt < 4; ++attempt) {
@@ -113,7 +113,7 @@ private:
             if (candidate != 0) {
                 _sessionID = candidate;
                 _sessionReady = true;
-                if (EnsureObservable()) _observable->SessionEstablished(_sessionID);
+                if (_observable) _observable->SessionEstablished(_sessionID);
                 return true;
             }
         }
@@ -177,6 +177,7 @@ public:
     const TransportSecurityConfig& GetConfig() const noexcept { return _config; }
     uint64_t GetSessionID() const noexcept { return _sessionID; }
 
+    /// <summary>Registers a transport-security observer, allocating observer infrastructure on first use.</summary>
     Observable::ObserverHandlePtr RegisterObserver(ITransportSecurityObserver* observer) {
         if (observer == nullptr || !EnsureObservable()) return {};
         return _observable->RegisterObserver(observer);
@@ -193,7 +194,7 @@ public:
         _nextSequence = 1;
         _sessionID = _config.SessionID;
         _sessionReady = _sessionID != 0;
-        if (EnsureObservable()) {
+        if (_observable) {
             _observable->ConfigurationChanged(before, _config);
             if (previousSessionID != 0 && previousSessionID != _sessionID) _observable->SessionReset(previousSessionID);
             if (_sessionReady && _sessionID != previousSessionID) _observable->SessionEstablished(_sessionID);
@@ -202,7 +203,7 @@ public:
 
     void ResetReplayProtection() {
         _replay.Reset();
-        if (EnsureObservable()) _observable->ReplayProtectionReset();
+        if (_observable) _observable->ReplayProtectionReset();
     }
 
     /// <summary>Protects a transport payload into caller-selected contiguous byte storage.</summary>
@@ -212,7 +213,7 @@ public:
     /// <param name="plaintextSize">Number of plaintext bytes to protect.</param>
     /// <param name="output">Destination buffer receiving the protected envelope.</param>
     /// <returns>The protection result and whether the returned payload is cryptographically protected.</returns>
-    /// <remarks>The fixed header and nonce are constructed directly in final output storage. No separate header/nonce buffers are allocated or copied.</remarks>
+    /// <remarks>The fixed header and nonce are constructed directly in final output storage. Key material is borrowed from the provider, so protection performs no per-operation key allocation or copy.</remarks>
     template<typename TBuffer>
     SecurityResult Protect(
         uint8_t protocol,
@@ -231,37 +232,31 @@ public:
         }
 
         IAeadCipher* cipher = _ciphers.Find(_config.OutboundAlgorithm);
-        KeyMaterial key;
+        KeyMaterialView key;
         const bool haveKey = _keys.GetKey(_config.OutboundKeyID, _config.OutboundAlgorithm, key);
         if (cipher == nullptr || !haveKey) {
             if (_config.Policy == TransportSecurityPolicy::Preferred) {
                 if (plaintextSize) output.assign(plaintext, plaintext + plaintextSize);
-                SecureErase(key.Bytes);
                 return SecurityResult::Ok(false);
             }
-            SecureErase(key.Bytes);
             return ReportFailure(SecurityResult::Fail(
                 cipher == nullptr ? SecurityError::UnsupportedAlgorithm : SecurityError::MissingKey,
                 cipher == nullptr ? "Outbound AEAD algorithm is not registered" : "Outbound key is unavailable"
             ));
         }
-        if (key.Bytes.size() != cipher->KeySize()) {
-            SecureErase(key.Bytes);
+        if (key.Size != cipher->KeySize()) {
             return ReportFailure(SecurityResult::Fail(SecurityError::InvalidKeyLength, "Outbound key length does not match AEAD algorithm"));
         }
         if (!EnsureSessionID()) {
-            SecureErase(key.Bytes);
             return ReportFailure(SecurityResult::Fail(SecurityError::RandomFailure, "Transport security session ID generation failed"));
         }
         if (_nextSequence == 0 || _nextSequence == std::numeric_limits<uint64_t>::max()) {
-            SecureErase(key.Bytes);
             return ReportFailure(SecurityResult::Fail(SecurityError::SequenceExhausted, "Outbound sequence exhausted; establish a new session before continuing"));
         }
 
         const std::size_t nonceSize = cipher->NonceSize();
         const std::size_t tagSize = cipher->TagSize();
         if (nonceSize > 0xFFu || tagSize > 0xFFu || plaintextSize > 0xFFFFFFFFu) {
-            SecureErase(key.Bytes);
             return ReportFailure(SecurityResult::Fail(SecurityError::BufferLimitExceeded, "Transport security envelope fields exceed wire-format limits"));
         }
 
@@ -286,33 +281,29 @@ public:
             Append16(output, 0);
             Append32(output, static_cast<uint32_t>(plaintextSize));
             if (output.size() != FixedHeaderSize) {
-                SecureErase(key.Bytes);
                 SecureErase(output);
                 return ReportFailure(SecurityResult::Fail(SecurityError::MalformedEnvelope, "Transport security header size is inconsistent"));
             }
             output.resize(totalSize);
         } catch (...) {
-            SecureErase(key.Bytes);
             SecureErase(output);
             return ReportFailure(SecurityResult::Fail(SecurityError::BufferLimitExceeded, "Protected output allocation failed"));
         }
 
         uint8_t* const nonce = output.data() + FixedHeaderSize;
         if (!_random.Fill(nonce, nonceSize)) {
-            SecureErase(key.Bytes);
             SecureErase(output);
             return ReportFailure(SecurityResult::Fail(SecurityError::RandomFailure, "Cryptographic nonce generation failed"));
         }
 
         const bool encrypted = cipher->Seal(
-            key.Bytes.data(), key.Bytes.size(),
+            key.Data, key.Size,
             nonce, nonceSize,
             output.data(), FixedHeaderSize,
             plaintext, plaintextSize,
             output.data() + ciphertextOffset, plaintextSize,
             output.data() + tagOffset, tagSize
         );
-        SecureErase(key.Bytes);
         if (!encrypted) {
             SecureErase(output);
             return ReportFailure(SecurityResult::Fail(SecurityError::EncryptionFailed, "AEAD encryption failed"));
@@ -320,6 +311,7 @@ public:
         return SecurityResult::Ok(true);
     }
 
+    /// <summary>Authenticates and decrypts a transport envelope using borrowed key material.</summary>
     SecurityResult Unprotect(
         uint8_t expectedProtocol,
         const uint8_t* input,
@@ -384,12 +376,11 @@ public:
             return ReportFailure(SecurityResult::Fail(SecurityError::ReplayDetected, "Replay or stale protected transport payload rejected"));
         }
 
-        KeyMaterial key;
+        KeyMaterialView key;
         if (!_keys.GetKey(keyID, algorithm, key)) {
             return ReportFailure(SecurityResult::Fail(SecurityError::MissingKey, "Inbound key is unavailable"));
         }
-        if (key.Bytes.size() != cipher->KeySize()) {
-            SecureErase(key.Bytes);
+        if (key.Size != cipher->KeySize()) {
             return ReportFailure(SecurityResult::Fail(SecurityError::InvalidKeyLength, "Inbound key length does not match AEAD algorithm"));
         }
 
@@ -398,14 +389,13 @@ public:
         const uint8_t* tag = ciphertext + ciphertextLength;
         output.Data.resize(ciphertextLength);
         const bool authenticated = cipher->Open(
-            key.Bytes.data(), key.Bytes.size(),
+            key.Data, key.Size,
             nonce, nonceLength,
             input, FixedHeaderSize,
             ciphertext, ciphertextLength,
             tag, tagLength,
             output.Data.data(), output.Data.size()
         );
-        SecureErase(key.Bytes);
         if (!authenticated) {
             SecureErase(output.Data);
             return ReportFailure(SecurityResult::Fail(SecurityError::AuthenticationFailed, "AEAD authentication/decryption failed"));
