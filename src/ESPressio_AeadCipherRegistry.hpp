@@ -1,12 +1,13 @@
 #pragma once
 
 #include <algorithm>
-#include <vector>
+#include <ESPressio_Memory.hpp>
 #include "ESPressio_IAeadCipher.hpp"
 
 namespace ESPressio::Security {
 
 /// <summary>Maintains non-owning registrations of authenticated-encryption implementations keyed by algorithm.</summary>
+/// <remarks>Registry capacity uses ESPressio System ExternalPreferred storage because cipher registrations do not require internal or DMA-capable RAM.</remarks>
 class AeadCipherRegistry {
 public:
     /// <summary>Registers a cipher when no implementation for the same algorithm already exists.</summary>
@@ -33,7 +34,10 @@ public:
     }
 
 private:
-    std::vector<IAeadCipher*> _ciphers;
+    System::Memory::Vector<
+        IAeadCipher*,
+        System::Memory::MemoryPolicy::ExternalPreferred
+    > _ciphers;
 };
 
 }
