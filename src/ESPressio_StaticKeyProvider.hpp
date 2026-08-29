@@ -65,7 +65,8 @@ public:
     }
 
     /// <inheritdoc/>
-    bool GetKey(uint32_t keyID, AeadAlgorithm algorithm, KeyMaterial& key) const override {
+    bool GetKey(uint32_t keyID, AeadAlgorithm algorithm, KeyMaterialView& key) const override {
+        key = {};
         auto found = std::find_if(
             _entries.begin(),
             _entries.end(),
@@ -75,7 +76,8 @@ public:
         );
         if (found == _entries.end()) return false;
         key.KeyID = found->KeyID;
-        key.Bytes = found->Bytes;
+        key.Data = found->Bytes.data();
+        key.Size = found->Bytes.size();
         return true;
     }
 
