@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string_view>
 #include <utility>
 
@@ -85,16 +86,46 @@ struct SecurityResult {
     }
 };
 
-/// <summary>Non-owning view of key bytes retained by a key provider.</summary>
+/// <summary>Immutable shared backing storage for borrowed cryptographic key views.</summary>
+/// <remarks>Key bytes are securely overwritten when the last retained view releases the storage. This allows a provider to rotate or remove an entry without invalidating an operation that already borrowed it.</remarks>
+struct KeyMaterialStorage final {
+    SecurityBuffer Bytes;
+
+    ~KeyMaterialStorage() {
+        volatile uint8_t* pointer = Bytes.empty() ? nullptr : Bytes.data();
+        for (std::size_t index = 0;
+             pointer != nullptr && index < Bytes.size();
+             ++index) {
+            pointer[index] = 0;
+        }
+        Bytes.clear();
+    }
+};
+
+/// <summary>Read-only key view that pins the provider-published key storage for its full lifetime.</summary>
 /// <remarks>
-/// The view avoids allocating and copying cryptographic key material for every protection operation. The referenced
-/// bytes remain owned by the provider and are valid only until that provider is mutated or destroyed. Callers must
-/// consume the view synchronously and must never retain, modify, or release its data.
+/// The view avoids copying cryptographic key bytes for every protection operation while retaining shared ownership of
+/// immutable backing storage. Provider mutation may remove or replace an entry, but an already returned view remains
+/// valid until that view is destroyed. Callers must not modify or release <c>Data</c> directly.
 /// </remarks>
 struct KeyMaterialView {
     uint32_t KeyID = 0;
     const uint8_t* Data = nullptr;
     std::size_t Size = 0;
+    std::shared_ptr<const KeyMaterialStorage> Storage;
+
+    /// <summary>Binds this view to immutable shared key storage.</summary>
+    void Bind(
+        uint32_t keyID,
+        std::shared_ptr<const KeyMaterialStorage> storage
+    ) noexcept {
+        Storage = std::move(storage);
+        KeyID = keyID;
+        Data = Storage && !Storage->Bytes.empty()
+            ? Storage->Bytes.data()
+            : nullptr;
+        Size = Storage ? Storage->Bytes.size() : 0;
+    }
 
     /// <summary>Returns whether the view contains no key bytes.</summary>
     constexpr bool Empty() const noexcept { return Data == nullptr || Size == 0; }
