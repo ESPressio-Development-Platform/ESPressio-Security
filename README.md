@@ -34,8 +34,8 @@ During the coordinated platform-abstraction development tranche:
 
 ```ini
 lib_deps =
-    https://github.com/ESPressio-Development-Platform/ESPressio-System.git#feature/1-system-memory-policy
-    https://github.com/ESPressio-Development-Platform/ESPressio-Security.git#optimisation/23-memory-policy-transient-buffers
+    https://github.com/ESPressio-Development-Platform/ESPressio-System.git#main
+    https://github.com/ESPressio-Development-Platform/ESPressio-Security.git#main
 ```
 
 On ESP32, the top-level application also installs the ESPressio-ESP32 System providers before Security first needs hardware entropy:
@@ -46,7 +46,7 @@ On ESP32, the top-level application also installs the ESPressio-ESP32 System pro
 ESPressio::ESP32Platform::InstallSystemProviders();
 ```
 
-For released versions, consume the normal released package/version baselines rather than the development refs above.
+During the release restructuring, consume ESPressio dependencies from their `main` branches until the new platform-wide 1.0.0 release generation is published.
 
 The normal Security umbrella is:
 
