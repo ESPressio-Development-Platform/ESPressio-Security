@@ -4,7 +4,7 @@ Authenticated data protection, transport security, replay protection and key abs
 
 ## Current Version — 0.4.2
 
-Security 0.4.2 is a dependency-maintenance release validating the optional Security Event integration against Event 6.0.3 and the released Serializable 0.11.3 cascade. The data-protection and transport-security APIs introduced through 0.4.0 are unchanged.
+During the release restructuring, the optional Security Event integration is validated against ESPressio Event `main` and the current ESPressio Serializable dependency chain on `main`. The data-protection and transport-security APIs introduced through 0.4.0 are unchanged.
 
 The active platform-abstraction tranche additionally routes hardware entropy through ESPressio-System. Cryptographic algorithms and security policy remain in this library; target-specific random-number generation belongs to the installed platform provider.
 
@@ -247,15 +247,3 @@ See [ESPRESSIO_DEPENDENCY_CHART.md](ESPRESSIO_DEPENDENCY_CHART.md).
 # Testing
 
 Host tests cover generic data-protection round trips, context binding, tamper rejection, malformed envelopes, payload bounds, transport envelope behavior, replay/session handling and secure transport decoration. Platform integration tests must additionally provide an installed cryptographically suitable entropy source when nonce generation is exercised.
-
-# Platform abstraction audit
-
-See [PLATFORM_ABSTRACTIONS.md](PLATFORM_ABSTRACTIONS.md) for the hardware/runtime abstraction migration record.
-
-# Changelog
-
-See [CHANGELOG.md](CHANGELOG.md).
-
-## License
-
-Apache License 2.0. See [LICENSE](LICENSE).
