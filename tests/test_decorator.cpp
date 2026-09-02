@@ -16,42 +16,34 @@ public:
     std::size_t TagSize() const noexcept override { return 16; }
 
     bool Seal(
-        const uint8_t* key,
-        std::size_t keySize,
-        const uint8_t* nonce,
-        std::size_t nonceSize,
-        const uint8_t* aad,
-        std::size_t aadSize,
-        const uint8_t* plaintext,
-        std::size_t plaintextSize,
-        std::vector<uint8_t>& ciphertext,
-        std::vector<uint8_t>& tag
+        const uint8_t* key, std::size_t keySize,
+        const uint8_t* nonce, std::size_t nonceSize,
+        const uint8_t* aad, std::size_t aadSize,
+        const uint8_t* plaintext, std::size_t plaintextSize,
+        uint8_t* ciphertext, std::size_t ciphertextCapacity,
+        uint8_t* tag, std::size_t tagCapacity
     ) override {
-        if (keySize != 16 || nonceSize != 12) return false;
-        ciphertext.assign(plaintext, plaintext + plaintextSize);
-        for (std::size_t i = 0; i < plaintextSize; ++i) ciphertext[i] ^= key[i % keySize] ^ nonce[i % nonceSize];
+        if (keySize != 16 || nonceSize != 12 || ciphertextCapacity < plaintextSize || tagCapacity < 16) return false;
         uint8_t value = 0;
+        for (std::size_t i = 0; i < plaintextSize; ++i) {
+            ciphertext[i] = plaintext[i] ^ key[i % keySize] ^ nonce[i % nonceSize];
+        }
         for (std::size_t i = 0; i < aadSize; ++i) value ^= aad[i];
-        for (auto byte : ciphertext) value ^= byte;
+        for (std::size_t i = 0; i < plaintextSize; ++i) value ^= ciphertext[i];
         for (std::size_t i = 0; i < keySize; ++i) value ^= key[i];
-        tag.assign(16, value);
+        for (std::size_t i = 0; i < 16; ++i) tag[i] = value;
         return true;
     }
 
     bool Open(
-        const uint8_t* key,
-        std::size_t keySize,
-        const uint8_t* nonce,
-        std::size_t nonceSize,
-        const uint8_t* aad,
-        std::size_t aadSize,
-        const uint8_t* ciphertext,
-        std::size_t ciphertextSize,
-        const uint8_t* tag,
-        std::size_t tagSize,
-        std::vector<uint8_t>& plaintext
+        const uint8_t* key, std::size_t keySize,
+        const uint8_t* nonce, std::size_t nonceSize,
+        const uint8_t* aad, std::size_t aadSize,
+        const uint8_t* ciphertext, std::size_t ciphertextSize,
+        const uint8_t* tag, std::size_t tagSize,
+        uint8_t* plaintext, std::size_t plaintextCapacity
     ) override {
-        if (keySize != 16 || nonceSize != 12 || tagSize != 16) return false;
+        if (keySize != 16 || nonceSize != 12 || tagSize != 16 || plaintextCapacity < ciphertextSize) return false;
         uint8_t value = 0;
         for (std::size_t i = 0; i < aadSize; ++i) value ^= aad[i];
         for (std::size_t i = 0; i < ciphertextSize; ++i) value ^= ciphertext[i];
@@ -59,8 +51,9 @@ public:
         uint8_t difference = 0;
         for (std::size_t i = 0; i < tagSize; ++i) difference |= tag[i] ^ value;
         if (difference != 0) return false;
-        plaintext.assign(ciphertext, ciphertext + ciphertextSize);
-        for (std::size_t i = 0; i < ciphertextSize; ++i) plaintext[i] ^= key[i % keySize] ^ nonce[i % nonceSize];
+        for (std::size_t i = 0; i < ciphertextSize; ++i) {
+            plaintext[i] = ciphertext[i] ^ key[i % keySize] ^ nonce[i % nonceSize];
+        }
         return true;
     }
 };

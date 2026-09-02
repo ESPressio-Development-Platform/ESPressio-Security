@@ -31,6 +31,11 @@ jobs:
           path: project/ESPressio-Security
       - uses: actions/checkout@v4
         with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: feature/1-system-memory-policy
+          path: project/dependencies/ESPressio-System
+      - uses: actions/checkout@v4
+        with:
           repository: ESPressio-Development-Platform/ESPressio-Observable
           ref: feature/16-rtti-free-observer-registry
           path: project/dependencies/ESPressio-Observable
@@ -72,6 +77,7 @@ jobs:
           build_unflags = -std=gnu++11 -frtti
           lib_ldf_mode = deep+
           lib_deps =
+              ../dependencies/ESPressio-System
               ../dependencies/ESPressio-Observable
               ../dependencies/ESPressio-Units
               ../dependencies/ESPressio-Timing
@@ -87,5 +93,5 @@ jobs:
           void setup() {}
           void loop() {}
           EOF
-      - name: Compile Security Event integration against lead RTTI-free stack
+      - name: Compile Security Event integration against coordinated RTTI-free stack
         run: pio run -d project/compile
