@@ -6,10 +6,10 @@
 
 ```text
 Security 0.4.2
-    -> Observable >= 3.0.2 < 4.0.0
+    -> Observable main
 
 Security Event integration
-    - - -> Event >= 6.0.3 < 7.0.0
+    - - -> Event main
 ```
 
 `IDataProtector` / `DataProtector` introduces no additional required dependency. Security remains independent of Serializable, Persistence, WiFi, Sockets, ESP-Now, Command and Serial.
@@ -36,20 +36,20 @@ Serial        0.8.1
 
 ```text
 Persistence
-    - - -> Serializable >= 0.11.3 < 1.0.0
+    - - -> Serializable main
             protected persistence reaches Security through Serializable's protection API
 
 Sockets
-    - - -> Security >= 0.4.2 < 1.0.0
+    - - -> Security main
 
 ESP-Now
-    - - -> Security >= 0.4.2 < 1.0.0
+    - - -> Security main
 
 WiFi
-    - - -> Security >= 0.4.2 < 1.0.0
+    - - -> Security main
 
 Serial
-    - - -> Security >= 0.4.2 < 1.0.0
+    - - -> Security main
 ```
 
 Security owns cryptographic policy and implementation abstractions. Serializable may opt into Security; Security must not depend back on Serializable. Serial remains terminal/downstream; ESPressio Tree remains standalone.
