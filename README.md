@@ -54,6 +54,22 @@ The normal Security umbrella is:
 #include <ESPressio_Security.hpp>
 ```
 
+Mesh v1 uses the explicit optional `ESPressio_MeshV1MbedTLSProvider.hpp` integration header. Its fixed-capacity provider implements Mesh's frozen P-256/HKDF-SHA-256/AES-256-GCM contract while retaining ephemeral private scalars and derived session material only in fixed arrays. The application injects its cryptographically suitable `IRandomSource`, protected local `IMeshV1IdentitySigner`, and bounded operator-authorized `IMeshV1RegisteredIdentitySource`; private long-term key bytes never cross the signer boundary.
+
+```cpp
+#include <ESPressio_MeshV1MbedTLSProvider.hpp>
+
+// Capacities are mandatory composition choices: four concurrent handshakes,
+// and at most one pairwise session for each of 32 Mesh members.
+ESPressio::Security::MeshV1MbedTLSProvider<4, 32> meshCryptography(
+    randomSource,
+    localIdentitySigner,
+    registeredDevices
+);
+```
+
+The header is not included by `ESPressio_Security.hpp`; non-Mesh consumers do not acquire a Mesh dependency. mbedTLS big-number state is operation-local and freed before return. Controlled reset securely clears every fixed secret slot and preserves stale-handle rejection. Whole-device memory accounting must include the provider, signer and registered-identity store (either as one aggregate security-owner type or through the platform profile's explicit composition reserve); accounting only the provider would omit provisioned identity storage.
+
 # Protecting arbitrary data
 
 A `DataProtector` composes four existing Security concepts:

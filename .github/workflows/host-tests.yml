@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify core Security remains Event-free
+      - name: Verify core Security remains Event/Mesh-free
         run: |
-          if grep -R -nE '#[[:space:]]*include[[:space:]]*[<\"]ESPressio_(Event|SecurityEvents|TransportSecurityEventBridge)' src/ESPressio_Security.hpp; then
-            echo 'Core Security umbrella must not acquire Event integration.'
+          if grep -R -nE '#[[:space:]]*include[[:space:]]*[<\"]ESPressio_(Event|Mesh|SecurityEvents|TransportSecurityEventBridge)' src/ESPressio_Security.hpp; then
+            echo 'Core Security umbrella must not acquire Event or Mesh integration.'
             exit 1
           fi
       - name: Configure
@@ -95,3 +95,92 @@ jobs:
           EOF
       - name: Compile Security Event integration against coordinated RTTI-free stack
         run: pio run -d project/compile
+
+  esp32-mesh-v1-provider:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: project/ESPressio-Security
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: project/dependencies/ESPressio-System
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Primitive
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: project/dependencies/ESPressio-Primitive
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Radio
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: project/dependencies/ESPressio-Radio
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Mesh
+          ref: structural_realignment_propagation
+          path: project/dependencies/ESPressio-Mesh
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Observable
+          ref: structural_realignment
+          path: project/dependencies/ESPressio-Observable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install PlatformIO
+        run: pip install platformio
+      - name: Create bounded Mesh v1 provider compile project
+        shell: bash
+        run: |
+          mkdir -p project/mesh-provider/src
+          cat > project/mesh-provider/platformio.ini <<'EOF'
+          [env:esp32]
+          platform = espressif32
+          board = esp32dev
+          framework = arduino
+          build_flags = -std=gnu++17
+          build_unflags = -std=gnu++11
+          lib_ldf_mode = deep+
+          lib_deps =
+              ../dependencies/ESPressio-System
+              ../dependencies/ESPressio-Primitive
+              ../dependencies/ESPressio-Radio
+              ../dependencies/ESPressio-Mesh
+              ../dependencies/ESPressio-Observable
+              ../ESPressio-Security
+          EOF
+          cat > project/mesh-provider/src/main.cpp <<'EOF'
+          #include <Arduino.h>
+          #include <ESPressio_MeshV1MbedTLSProvider.hpp>
+
+          static_assert(ESPRESSIO_SECURITY_HAS_MESH_V1_MBEDTLS == 1);
+
+          class Random final : public ESPressio::Security::IRandomSource {
+          public:
+              bool Fill(uint8_t* output, std::size_t size) override {
+                  if (output == nullptr && size != 0U) return false;
+                  for (std::size_t index = 0; index < size; ++index) output[index] = static_cast<uint8_t>(index + 1U);
+                  return true;
+              }
+          } randomSource;
+
+          class Signer final : public ESPressio::Security::IMeshV1IdentitySigner {
+          public:
+              ESPressio::System::DeviceIdentifier Device() const noexcept override { return {}; }
+              bool SignP256Sha256Digest(const ESPressio::Mesh::MeshSecurityDigest&, ESPressio::Mesh::MeshIdentitySignature&) noexcept override { return false; }
+          } signer;
+
+          class Identities final : public ESPressio::Security::IMeshV1RegisteredIdentitySource {
+          public:
+              bool LookupP256PublicKey(const ESPressio::System::DeviceIdentifier&, ESPressio::Mesh::MeshIdentityPublicKey&) const noexcept override { return false; }
+          } identities;
+
+          ESPressio::Security::MeshV1MbedTLSProvider<4, 32> provider(randomSource, signer, identities);
+          void setup() { provider.ResetForControlledShutdown(); }
+          void loop() {}
+          EOF
+      - name: Compile fixed-capacity Mesh v1 provider against mbedTLS
+        run: pio run -d project/mesh-provider
