@@ -184,3 +184,35 @@ jobs:
           EOF
       - name: Compile fixed-capacity Mesh v1 provider against mbedTLS
         run: pio run -d project/mesh-provider
+
+  host-mesh-v1-provider:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ESPressio-Security
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-System
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Primitive
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-Primitive
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Mesh
+          ref: structural_realignment_propagation
+          path: ESPressio-Mesh
+      - name: Install host mbedTLS development package
+        run: sudo apt-get update && sudo apt-get install -y libmbedtls-dev
+      - name: Build concrete Mesh v1 interoperability regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Security/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Mesh/src
+          ESPressio-Security/tests/mesh_v1_mbedtls_provider_test.cpp
+          -lmbedcrypto -o mesh_v1_mbedtls_provider_test
+      - name: Run concrete Mesh v1 interoperability regression
+        run: ./mesh_v1_mbedtls_provider_test
