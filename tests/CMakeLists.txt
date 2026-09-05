@@ -8,7 +8,7 @@ include(FetchContent)
 FetchContent_Declare(
     ESPressioSystem
     GIT_REPOSITORY https://github.com/ESPressio-Development-Platform/ESPressio-System.git
-    GIT_TAG feature/1-system-memory-policy
+    GIT_TAG structural_realignment
     GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(ESPressioSystem)
@@ -17,7 +17,7 @@ set(ESPRESSIO_SYSTEM_INCLUDE ${espressiosystem_SOURCE_DIR}/src)
 FetchContent_Declare(
     ESPressioObservable
     GIT_REPOSITORY https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git
-    GIT_TAG feature/16-rtti-free-observer-registry
+    GIT_TAG structural_realignment
     GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(ESPressioObservable)

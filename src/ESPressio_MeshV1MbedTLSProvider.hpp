@@ -11,13 +11,13 @@
 #include "ESPressio_IRandomSource.hpp"
 
 #if __has_include(<mbedtls/ecdh.h>) && __has_include(<mbedtls/ecdsa.h>) && \
-    __has_include(<mbedtls/gcm.h>) && __has_include(<mbedtls/hkdf.h>) && \
+    __has_include(<mbedtls/gcm.h>) && __has_include(<mbedtls/md.h>) && \
     __has_include(<mbedtls/sha256.h>)
 #define ESPRESSIO_SECURITY_HAS_MESH_V1_MBEDTLS 1
 #include <mbedtls/ecdh.h>
 #include <mbedtls/ecdsa.h>
 #include <mbedtls/gcm.h>
-#include <mbedtls/hkdf.h>
+#include <mbedtls/md.h>
 #include <mbedtls/sha256.h>
 #else
 #define ESPRESSIO_SECURITY_HAS_MESH_V1_MBEDTLS 0
@@ -160,6 +160,64 @@ class MeshV1MbedTLSProvider final : public Mesh::IMeshV1CryptographicProvider {
         if (bytes == nullptr && size != 0U) return false;
         std::memcpy(cursor, bytes, size);
         cursor += size;
+        return true;
+    }
+    template<std::size_t InfoBytes, std::size_t OutputBytes>
+    static bool HkdfSha256(
+        const std::uint8_t* salt,
+        std::size_t saltBytes,
+        const std::uint8_t* inputKeyMaterial,
+        std::size_t inputKeyMaterialBytes,
+        const std::array<std::uint8_t, InfoBytes>& info,
+        std::array<std::uint8_t, OutputBytes>& output
+    ) noexcept {
+        static_assert(OutputBytes <= 255U * Mesh::MeshV1SecuritySuite::DigestBytes);
+        output.fill(0U);
+        if ((salt == nullptr && saltBytes != 0U) ||
+            (inputKeyMaterial == nullptr && inputKeyMaterialBytes != 0U)) return false;
+        const auto* md = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+        if (md == nullptr || mbedtls_md_get_size(md) != Mesh::MeshV1SecuritySuite::DigestBytes) return false;
+
+        Mesh::MeshSecurityDigest pseudorandomKey{};
+        Mesh::MeshSecurityDigest block{};
+        std::array<std::uint8_t, Mesh::MeshV1SecuritySuite::DigestBytes + InfoBytes + 1U> blockInput{};
+        if (mbedtls_md_hmac(md, salt, saltBytes, inputKeyMaterial, inputKeyMaterialBytes,
+                            pseudorandomKey.Value.data()) != 0) {
+            Erase(pseudorandomKey);
+            return false;
+        }
+
+        std::size_t produced = 0U;
+        std::size_t previousBytes = 0U;
+        std::uint8_t counter = 1U;
+        while (produced < output.size()) {
+            auto* cursor = blockInput.data();
+            if (previousBytes != 0U) {
+                std::memcpy(cursor, block.Value.data(), previousBytes);
+                cursor += previousBytes;
+            }
+            std::memcpy(cursor, info.data(), info.size());
+            cursor += info.size();
+            *cursor++ = counter;
+            if (mbedtls_md_hmac(md, pseudorandomKey.Value.data(), pseudorandomKey.Value.size(),
+                                blockInput.data(), static_cast<std::size_t>(cursor - blockInput.data()),
+                                block.Value.data()) != 0) {
+                Erase(pseudorandomKey);
+                Erase(block);
+                Erase(blockInput);
+                Erase(output);
+                return false;
+            }
+            const auto remaining = output.size() - produced;
+            const auto copied = remaining < block.Value.size() ? remaining : block.Value.size();
+            std::memcpy(output.data() + produced, block.Value.data(), copied);
+            produced += copied;
+            previousBytes = block.Value.size();
+            ++counter;
+        }
+        Erase(pseudorandomKey);
+        Erase(block);
+        Erase(blockInput);
         return true;
     }
 
@@ -356,10 +414,9 @@ public:
         Append(infoCursor, signedHelloTranscriptDigest.Value.data(), signedHelloTranscriptDigest.Value.size());
 
         std::array<std::uint8_t, Mesh::MeshV1SecuritySuite::DerivedBytes> derived{};
-        const auto* md = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
-        const bool expanded = md != nullptr &&
-            mbedtls_hkdf(md, salt.Value.data(), salt.Value.size(), shared.data(), shared.size(),
-                         info.data(), info.size(), derived.data(), derived.size()) == 0;
+        const bool expanded = HkdfSha256(
+            salt.Value.data(), salt.Value.size(), shared.data(), shared.size(), info, derived
+        );
         Erase(shared);
         if (!expanded) { Erase(derived); return false; }
 
