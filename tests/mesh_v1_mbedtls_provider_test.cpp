@@ -48,6 +48,31 @@ public:
     ) noexcept override { return false; }
 };
 
+class BoundarySigner final : public Security::IMeshV1IdentitySigner {
+    System::DeviceIdentifier _device{};
+    Mesh::MeshIdentitySignature _signature{};
+public:
+    explicit BoundarySigner(const System::DeviceIdentifier& device) noexcept : _device(device) {}
+
+    System::DeviceIdentifier Device() const noexcept override { return _device; }
+
+    void SetS(const std::array<std::uint8_t, 32U>& s) noexcept {
+        _signature = {};
+        _signature.Value[31U] = 1U;
+        for (std::size_t index = 0U; index < s.size(); ++index) {
+            _signature.Value[32U + index] = s[index];
+        }
+    }
+
+    bool SignP256Sha256Digest(
+        const Mesh::MeshSecurityDigest&,
+        Mesh::MeshIdentitySignature& signature
+    ) noexcept override {
+        signature = _signature;
+        return true;
+    }
+};
+
 class UnusedIdentities final : public Security::IMeshV1RegisteredIdentitySource {
 public:
     bool LookupP256PublicKey(
@@ -122,6 +147,30 @@ int main() {
     assert(initiator.Open(
         initiatorSession, Mesh::MeshSecurityTrafficPurpose::KeyConfirmation, 1U,
         transcript.Value.data(), transcript.Value.size(), nullptr, 0U, confirmation, nullptr));
+
+    // Mesh v1 freezes secp256r1 and requires canonical low-S identity signatures. Exercise the exact
+    // fixed-width boundary used by the provider without relying on an mbedTLS group/MPI setup.
+    const auto boundaryDevice = Identity<System::DeviceIdentifier>(201U);
+    TestRandom boundaryRandom{17U};
+    BoundarySigner boundarySigner{boundaryDevice};
+    Security::MeshV1MbedTLSProvider<1, 1> boundaryProvider(boundaryRandom, boundarySigner, identities);
+    const auto boundaryDigest = NonZero<Mesh::MeshSecurityDigest>(29U);
+    Mesh::MeshIdentitySignature boundarySignature{};
+    const std::array<std::uint8_t, 32U> halfOrder{{
+        0x7FU, 0xFFU, 0xFFU, 0xFFU, 0x80U, 0x00U, 0x00U, 0x00U,
+        0x7FU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU,
+        0xDEU, 0x73U, 0x7DU, 0x56U, 0xD3U, 0x8BU, 0xCFU, 0x42U,
+        0x79U, 0xDCU, 0xE5U, 0x61U, 0x7EU, 0x31U, 0x92U, 0xA8U
+    }};
+    std::array<std::uint8_t, 32U> zeroS{};
+    boundarySigner.SetS(zeroS);
+    assert(!boundaryProvider.SignIdentityDigest(boundaryDevice, boundaryDigest, boundarySignature));
+    boundarySigner.SetS(halfOrder);
+    assert(boundaryProvider.SignIdentityDigest(boundaryDevice, boundaryDigest, boundarySignature));
+    auto aboveHalfOrder = halfOrder;
+    ++aboveHalfOrder.back();
+    boundarySigner.SetS(aboveHalfOrder);
+    assert(!boundaryProvider.SignIdentityDigest(boundaryDevice, boundaryDigest, boundarySignature));
 
     Mesh::MeshEphemeralKeyHandle secondInitiatorEphemeral{};
     Mesh::MeshEphemeralKeyHandle secondResponderEphemeral{};
