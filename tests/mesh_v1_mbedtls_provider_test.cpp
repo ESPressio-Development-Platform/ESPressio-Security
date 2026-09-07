@@ -148,20 +148,28 @@ int main() {
         initiatorSession, Mesh::MeshSecurityTrafficPurpose::KeyConfirmation, 1U,
         transcript.Value.data(), transcript.Value.size(), nullptr, 0U, confirmation, nullptr));
 
-    // Mesh v1 freezes secp256r1 and requires canonical low-S identity signatures. Exercise the exact
-    // fixed-width boundary used by the provider without relying on an mbedTLS group/MPI setup.
+    // Mesh v1 freezes secp256r1 and requires canonical low-S identity signatures. Derive the
+    // boundary independently from mbedTLS's curve order so this regression does not merely duplicate
+    // the provider's fixed constant.
     const auto boundaryDevice = Identity<System::DeviceIdentifier>(201U);
     TestRandom boundaryRandom{17U};
     BoundarySigner boundarySigner{boundaryDevice};
     Security::MeshV1MbedTLSProvider<1, 1> boundaryProvider(boundaryRandom, boundarySigner, identities);
     const auto boundaryDigest = NonZero<Mesh::MeshSecurityDigest>(29U);
     Mesh::MeshIdentitySignature boundarySignature{};
-    const std::array<std::uint8_t, 32U> halfOrder{{
-        0x7FU, 0xFFU, 0xFFU, 0xFFU, 0x80U, 0x00U, 0x00U, 0x00U,
-        0x7FU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU,
-        0xDEU, 0x73U, 0x7DU, 0x56U, 0xD3U, 0x8BU, 0xCFU, 0x42U,
-        0x79U, 0xDCU, 0xE5U, 0x61U, 0x7EU, 0x31U, 0x92U, 0xA8U
-    }};
+
+    std::array<std::uint8_t, 32U> halfOrder{};
+    mbedtls_ecp_group boundaryGroup;
+    mbedtls_mpi halfOrderMpi;
+    mbedtls_ecp_group_init(&boundaryGroup);
+    mbedtls_mpi_init(&halfOrderMpi);
+    assert(mbedtls_ecp_group_load(&boundaryGroup, MBEDTLS_ECP_DP_SECP256R1) == 0);
+    assert(mbedtls_mpi_copy(&halfOrderMpi, &boundaryGroup.N) == 0);
+    assert(mbedtls_mpi_shift_r(&halfOrderMpi, 1U) == 0);
+    assert(mbedtls_mpi_write_binary(&halfOrderMpi, halfOrder.data(), halfOrder.size()) == 0);
+    mbedtls_mpi_free(&halfOrderMpi);
+    mbedtls_ecp_group_free(&boundaryGroup);
+
     std::array<std::uint8_t, 32U> zeroS{};
     boundarySigner.SetS(zeroS);
     assert(!boundaryProvider.SignIdentityDigest(boundaryDevice, boundaryDigest, boundarySignature));
