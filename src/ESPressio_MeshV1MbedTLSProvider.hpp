@@ -62,6 +62,14 @@ class MeshV1MbedTLSProvider final : public Mesh::IMeshV1CryptographicProvider {
 
     static constexpr std::size_t PurposeCount = 6U;
     static constexpr std::size_t P256ScalarBytes = 32U;
+    // floor(secp256r1 group order / 2), fixed-width big-endian. Mesh v1 freezes P-256,
+    // so low-S canonicality does not require loading the curve or allocating MPI state.
+    static constexpr std::array<std::uint8_t, P256ScalarBytes> P256HalfOrder{{
+        0x7FU, 0xFFU, 0xFFU, 0xFFU, 0x80U, 0x00U, 0x00U, 0x00U,
+        0x7FU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU,
+        0xDEU, 0x73U, 0x7DU, 0x56U, 0xD3U, 0x8BU, 0xCFU, 0x42U,
+        0x79U, 0xDCU, 0xE5U, 0x61U, 0x7EU, 0x31U, 0x92U, 0xA8U
+    }};
 
     struct EphemeralSlot final {
         std::array<std::uint8_t, P256ScalarBytes> Private{};
@@ -138,23 +146,12 @@ class MeshV1MbedTLSProvider final : public Mesh::IMeshV1CryptographicProvider {
         }
     }
     static bool ValidLowSSignature(const Mesh::MeshIdentitySignature& signature) noexcept {
-        mbedtls_ecp_group group;
-        mbedtls_mpi s;
-        mbedtls_mpi halfOrder;
-        mbedtls_ecp_group_init(&group);
-        mbedtls_mpi_init(&s);
-        mbedtls_mpi_init(&halfOrder);
-        const bool valid =
-            mbedtls_ecp_group_load(&group, MBEDTLS_ECP_DP_SECP256R1) == 0 &&
-            mbedtls_mpi_read_binary(&s, signature.Value.data() + P256ScalarBytes, P256ScalarBytes) == 0 &&
-            mbedtls_mpi_cmp_int(&s, 0) > 0 &&
-            mbedtls_mpi_copy(&halfOrder, &group.N) == 0 &&
-            mbedtls_mpi_shift_r(&halfOrder, 1U) == 0 &&
-            mbedtls_mpi_cmp_mpi(&s, &halfOrder) <= 0;
-        mbedtls_mpi_free(&halfOrder);
-        mbedtls_mpi_free(&s);
-        mbedtls_ecp_group_free(&group);
-        return valid;
+        const auto* s = signature.Value.data() + P256ScalarBytes;
+        bool nonZero = false;
+        for (std::size_t index = 0U; index < P256ScalarBytes; ++index) {
+            nonZero = nonZero || s[index] != 0U;
+        }
+        return nonZero && std::memcmp(s, P256HalfOrder.data(), P256ScalarBytes) <= 0;
     }
     static bool Append(std::uint8_t*& cursor, const std::uint8_t* bytes, std::size_t size) noexcept {
         if (bytes == nullptr && size != 0U) return false;
