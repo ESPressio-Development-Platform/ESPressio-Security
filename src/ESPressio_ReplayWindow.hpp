@@ -62,18 +62,18 @@ public:
     void Reset() { _states.clear(); }
 
 private:
-        /**
-     * ESPressio Memory Audit
-     * Members:
-     * - SenderID (uint64_t): 8 bytes [0 bytes dynamic allocation]
-     * - KeyID (uint32_t): 4 bytes [0 bytes dynamic allocation]
-     * - SessionID (uint64_t): 8 bytes [0 bytes dynamic allocation]
-     * - Highest (uint64_t): 8 bytes [0 bytes dynamic allocation]
-     * - Bitmap (uint64_t): 8 bytes [0 bytes dynamic allocation]
-     * Total Memory: 36 bytes [0 bytes dynamic allocation]
-     * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
-     * End ESPressio Memory Audit
-     */
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - SenderID (uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * - KeyID (uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - SessionID (uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * - Highest (uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * - Bitmap (uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * Total Memory: 36 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 struct State {
         uint64_t SenderID;
         uint32_t KeyID;

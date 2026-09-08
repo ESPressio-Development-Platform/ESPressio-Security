@@ -99,35 +99,35 @@ class MeshV1MbedTLSProvider final : public Mesh::IMeshV1CryptographicProvider {
         0x79U, 0xDCU, 0xE5U, 0x61U, 0x7EU, 0x31U, 0x92U, 0xA8U
     }};
 
-        /**
-     * ESPressio Memory Audit
-     * Members:
-     * - Private (std::array<std::uint8_t, P256ScalarBytes>): 32 bytes [0 bytes dynamic allocation]
-     * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
-     * - Used (bool): 1 bytes [0 bytes dynamic allocation]
-     * Total Memory: 36 bytes [0 bytes dynamic allocation]
-     * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
-     * End ESPressio Memory Audit
-     */
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - Private (std::array<std::uint8_t, P256ScalarBytes>): 32 bytes [0 bytes dynamic allocation]
+ * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
+ * - Used (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 36 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 struct EphemeralSlot final {
         std::array<std::uint8_t, P256ScalarBytes> Private{};
         std::uint16_t Generation{0};
         bool Used{false};
     };
-        /**
-     * ESPressio Memory Audit
-     * Members:
-     * - Keys (std::array<std::array<std::uint8_t, Mesh::MeshV1SecuritySuite::TrafficKeyBytes>, PurposeCount>): 192 bytes [0 bytes dynamic allocation]
-     * - Ivs (std::array<std::array<std::uint8_t, Mesh::MeshV1SecuritySuite::TrafficNonceBytes>, PurposeCount>): 72 bytes [0 bytes dynamic allocation]
-     * - Identifier (Mesh::MeshSecuritySessionIdentifier): 16 bytes [0 bytes dynamic allocation]
-     * - Role (Mesh::MeshSecuritySessionRole): 1 bytes [0 bytes dynamic allocation]
-     * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
-     * - Used (bool): 1 bytes [0 bytes dynamic allocation]
-     * Total Memory: 286 bytes [0 bytes dynamic allocation]
-     * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
-     * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
-     * End ESPressio Memory Audit
-     */
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - Keys (std::array<std::array<std::uint8_t, Mesh::MeshV1SecuritySuite::TrafficKeyBytes>, PurposeCount>): 192 bytes [0 bytes dynamic allocation]
+ * - Ivs (std::array<std::array<std::uint8_t, Mesh::MeshV1SecuritySuite::TrafficNonceBytes>, PurposeCount>): 72 bytes [0 bytes dynamic allocation]
+ * - Identifier (Mesh::MeshSecuritySessionIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - Role (Mesh::MeshSecuritySessionRole): 1 bytes [0 bytes dynamic allocation]
+ * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
+ * - Used (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 286 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 struct SessionSlot final {
         std::array<std::array<std::uint8_t, Mesh::MeshV1SecuritySuite::TrafficKeyBytes>, PurposeCount> Keys{};
         std::array<std::array<std::uint8_t, Mesh::MeshV1SecuritySuite::TrafficNonceBytes>, PurposeCount> Ivs{};

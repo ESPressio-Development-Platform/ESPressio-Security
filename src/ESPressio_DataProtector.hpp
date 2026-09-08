@@ -215,19 +215,19 @@ private:
     static constexpr uint8_t FormatVersion = 1;
     static constexpr std::size_t HeaderSize = 18;
 
-        /**
-     * ESPressio Memory Audit
-     * Members:
-     * - Version (uint8_t): 1 bytes [0 bytes dynamic allocation]
-     * - Algorithm (AeadAlgorithm): 1 bytes [0 bytes dynamic allocation]
-     * - KeyID (uint32_t): 4 bytes [0 bytes dynamic allocation]
-     * - NonceSize (uint16_t): 2 bytes [0 bytes dynamic allocation]
-     * - TagSize (uint16_t): 2 bytes [0 bytes dynamic allocation]
-     * - PlaintextSize (uint32_t): 4 bytes [0 bytes dynamic allocation]
-     * Total Memory: 16 bytes [0 bytes dynamic allocation]
-     * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
-     * End ESPressio Memory Audit
-     */
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - Version (uint8_t): 1 bytes [0 bytes dynamic allocation]
+ * - Algorithm (AeadAlgorithm): 1 bytes [0 bytes dynamic allocation]
+ * - KeyID (uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - NonceSize (uint16_t): 2 bytes [0 bytes dynamic allocation]
+ * - TagSize (uint16_t): 2 bytes [0 bytes dynamic allocation]
+ * - PlaintextSize (uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 16 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 struct Header {
         uint8_t Version = 0;
         AeadAlgorithm Algorithm = AeadAlgorithm::Unknown;
