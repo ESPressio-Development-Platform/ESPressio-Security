@@ -4,6 +4,14 @@
 #ifndef MBEDTLS_CIPHER_ID_AES
 #define MBEDTLS_CIPHER_ID_AES 1
 #endif
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - dummy (int): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 typedef struct { int dummy; } mbedtls_ccm_context;
 inline void mbedtls_ccm_init(mbedtls_ccm_context*){}
 inline void mbedtls_ccm_free(mbedtls_ccm_context*){}

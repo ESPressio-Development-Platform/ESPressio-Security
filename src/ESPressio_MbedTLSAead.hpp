@@ -40,6 +40,14 @@
 namespace ESPressio::Security {
 
 #if ESPRESSIO_SECURITY_HAS_MBEDTLS_GCM
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none; polymorphic/virtual-base object metadata is included in the total.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t KeyBytes, AeadAlgorithm AlgorithmValue>
 class MbedTLSAesGcm final : public IAeadCipher {
 public:
@@ -113,6 +121,14 @@ using AES256GCMCipher = MbedTLSAesGcm<32, AeadAlgorithm::AES256GCM>;
 #endif
 
 #if ESPRESSIO_SECURITY_HAS_MBEDTLS_CCM
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none; polymorphic/virtual-base object metadata is included in the total.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t KeyBytes, AeadAlgorithm AlgorithmValue>
 class MbedTLSAesCcm final : public IAeadCipher {
 public:
@@ -185,6 +201,14 @@ using AES256CCMCipher = MbedTLSAesCcm<32, AeadAlgorithm::AES256CCM>;
 #endif
 
 #if ESPRESSIO_SECURITY_HAS_MBEDTLS_CHACHAPOLY
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none; polymorphic/virtual-base object metadata is included in the total.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 class ChaCha20Poly1305Cipher final : public IAeadCipher {
 public:
     AeadAlgorithm Algorithm() const noexcept override { return AeadAlgorithm::ChaCha20Poly1305; }

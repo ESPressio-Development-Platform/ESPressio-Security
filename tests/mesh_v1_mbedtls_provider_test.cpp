@@ -25,6 +25,15 @@ static TIdentity Identity(std::uint8_t first) {
     return TIdentity{bytes};
 }
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - _next (std::uint8_t): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 8 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 class TestRandom final : public Security::IRandomSource {
     std::uint8_t _next;
 public:
@@ -39,6 +48,14 @@ public:
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none; polymorphic/virtual-base object metadata is included in the total.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 class UnusedSigner final : public Security::IMeshV1IdentitySigner {
 public:
     System::DeviceIdentifier Device() const noexcept override { return {}; }
@@ -48,6 +65,17 @@ public:
     ) noexcept override { return false; }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - _device (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - _signature (Mesh::MeshIdentitySignature): 64 bytes [0 bytes dynamic allocation]
+ * Total Memory: 84 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class BoundarySigner final : public Security::IMeshV1IdentitySigner {
     System::DeviceIdentifier _device{};
     Mesh::MeshIdentitySignature _signature{};
@@ -73,6 +101,14 @@ public:
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none; polymorphic/virtual-base object metadata is included in the total.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 class UnusedIdentities final : public Security::IMeshV1RegisteredIdentitySource {
 public:
     bool LookupP256PublicKey(

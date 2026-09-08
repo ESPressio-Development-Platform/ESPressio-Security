@@ -12,6 +12,17 @@ namespace ESPressio::Security {
 
 /// <summary>Decorates a transport carrier with authenticated protection and unprotection supplied by <c>TransportSecurity</c>.</summary>
 /// <remarks>The decorator borrows both the carrier and security service for its lifetime and installs itself as the carrier receiver until destruction.</remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _carrier (ITransportSecurityCarrier&): 4 bytes [0 bytes dynamic allocation]
+ * - _security (TransportSecurity&): 4 bytes [0 bytes dynamic allocation]
+ * - _receiver (Receiver): 92 bytes [0 bytes dynamic allocation]
+ * - _errorObserver (ErrorObserver): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 104 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 class SecureTransportDecorator final {
 public:
     /// <summary>Callback receiving successfully authenticated and unprotected application payloads.</summary>

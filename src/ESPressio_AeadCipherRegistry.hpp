@@ -8,6 +8,14 @@ namespace ESPressio::Security {
 
 /// <summary>Maintains non-owning registrations of authenticated-encryption implementations keyed by algorithm.</summary>
 /// <remarks>Registry capacity uses ESPressio System ExternalPreferred storage because cipher registrations do not require internal or DMA-capable RAM.</remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _ciphers (System::Memory::Vector<IAeadCipher*, System::Memory::MemoryPolicy::ExternalPreferred>): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 class AeadCipherRegistry {
 public:
     /// <summary>Registers a cipher when no implementation for the same algorithm already exists.</summary>

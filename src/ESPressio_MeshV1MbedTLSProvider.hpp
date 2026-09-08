@@ -27,6 +27,13 @@ namespace ESPressio::Security {
 
 /// <summary>Provisioned local long-term Mesh identity signer.</summary>
 /// <remarks>The implementation may use protected flash, a secure element or another platform policy. Private key bytes never cross this interface.</remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic/virtual-base object metadata is included in the total.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 class IMeshV1IdentitySigner {
 public:
     virtual ~IMeshV1IdentitySigner() = default;
@@ -38,6 +45,13 @@ public:
 };
 
 /// <summary>Operator-authorized public identities (the composition's bounded “My Devices” source).</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic/virtual-base object metadata is included in the total.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 class IMeshV1RegisteredIdentitySource {
 public:
     virtual ~IMeshV1RegisteredIdentitySource() = default;
@@ -55,6 +69,20 @@ public:
 /// operation-local and freed before return; there is no retained heap-backed key/session registry. The concrete signer
 /// and registered identity source remain injected provisioning boundaries.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - _random (IRandomSource&): 4 bytes [0 bytes dynamic allocation]
+ * - _signer (IMeshV1IdentitySigner&): 4 bytes [0 bytes dynamic allocation]
+ * - _identities (IMeshV1RegisteredIdentitySource&): 4 bytes [0 bytes dynamic allocation]
+ * - _ephemeral (std::array<EphemeralSlot, EphemeralCapacity>): EphemeralCapacity * (36 bytes) [0 bytes dynamic allocation]
+ * - _sessions (std::array<SessionSlot, SessionCapacity>): SessionCapacity * (286 bytes) [0 bytes dynamic allocation]
+ * Total Memory: 16 bytes known/aligned storage + EphemeralCapacity * (36 bytes) + SessionCapacity * (286 bytes) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t EphemeralCapacity, std::size_t SessionCapacity>
 class MeshV1MbedTLSProvider final : public Mesh::IMeshV1CryptographicProvider {
     static_assert(EphemeralCapacity > 0U && EphemeralCapacity < std::numeric_limits<std::uint16_t>::max());
@@ -71,12 +99,36 @@ class MeshV1MbedTLSProvider final : public Mesh::IMeshV1CryptographicProvider {
         0x79U, 0xDCU, 0xE5U, 0x61U, 0x7EU, 0x31U, 0x92U, 0xA8U
     }};
 
-    struct EphemeralSlot final {
+        /**
+     * ESPressio Memory Audit
+     * Members:
+     * - Private (std::array<std::uint8_t, P256ScalarBytes>): 32 bytes [0 bytes dynamic allocation]
+     * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
+     * - Used (bool): 1 bytes [0 bytes dynamic allocation]
+     * Total Memory: 36 bytes [0 bytes dynamic allocation]
+     * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+     * End ESPressio Memory Audit
+     */
+struct EphemeralSlot final {
         std::array<std::uint8_t, P256ScalarBytes> Private{};
         std::uint16_t Generation{0};
         bool Used{false};
     };
-    struct SessionSlot final {
+        /**
+     * ESPressio Memory Audit
+     * Members:
+     * - Keys (std::array<std::array<std::uint8_t, Mesh::MeshV1SecuritySuite::TrafficKeyBytes>, PurposeCount>): 192 bytes [0 bytes dynamic allocation]
+     * - Ivs (std::array<std::array<std::uint8_t, Mesh::MeshV1SecuritySuite::TrafficNonceBytes>, PurposeCount>): 72 bytes [0 bytes dynamic allocation]
+     * - Identifier (Mesh::MeshSecuritySessionIdentifier): 16 bytes [0 bytes dynamic allocation]
+     * - Role (Mesh::MeshSecuritySessionRole): 1 bytes [0 bytes dynamic allocation]
+     * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
+     * - Used (bool): 1 bytes [0 bytes dynamic allocation]
+     * Total Memory: 286 bytes [0 bytes dynamic allocation]
+     * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+     * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+     * End ESPressio Memory Audit
+     */
+struct SessionSlot final {
         std::array<std::array<std::uint8_t, Mesh::MeshV1SecuritySuite::TrafficKeyBytes>, PurposeCount> Keys{};
         std::array<std::array<std::uint8_t, Mesh::MeshV1SecuritySuite::TrafficNonceBytes>, PurposeCount> Ivs{};
         Mesh::MeshSecuritySessionIdentifier Identifier{};
