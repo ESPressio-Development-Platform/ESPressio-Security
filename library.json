@@ -15,7 +15,7 @@
   "dependencies": [
     {
       "name": "ESPressio-Observable",
-      "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git#structural_realignment"
+      "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git#primitives_redesign"
     },
     {
       "name": "ESPressio-System",
