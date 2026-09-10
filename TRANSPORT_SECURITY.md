@@ -1,6 +1,6 @@
 # ESPressio Transport Security
 
-This document describes the transport-neutral security layer introduced by ESPressio Security 0.1.0.
+This document describes the transport-neutral security layer introduced by ESPressio Security.
 
 ## Placement
 
@@ -16,7 +16,7 @@ Event / Command / Clock Sync / application protocol
                   secured envelope
                          |
                          v
-             ESP-NOW / UDP / TCP / ...
+             ESP-NOW / UDP / TCP /...
 ```
 
 On receive, the order is reversed. Authentication, decryption, protocol binding and replay validation complete before plaintext is handed upward.
@@ -103,7 +103,7 @@ Replay state is committed only after successful AEAD authentication and protocol
 A concrete library can expose or adapt its send/receive surface to `ITransportSecurityCarrier`:
 
 ```cpp
-class Adapter : public Security::ITransportSecurityCarrier {
+class Adapter: public Security::ITransportSecurityCarrier {
 public:
     bool Send(uint8_t protocol, const uint8_t* data, std::size_t size) override;
     void SetReceiver(Receiver receiver) override;

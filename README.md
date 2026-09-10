@@ -46,7 +46,7 @@ On ESP32, the top-level application also installs the ESPressio-ESP32 System pro
 ESPressio::ESP32Platform::InstallSystemProviders();
 ```
 
-During the release restructuring, consume ESPressio dependencies from their `main` branches until the new platform-wide 1.0.0 release generation is published.
+During the release restructuring, consume ESPressio dependencies from their `main` branches until the new platform-wide release generation is published.
 
 The normal Security umbrella is:
 
@@ -194,7 +194,7 @@ Because modern AEAD is used, a successfully unprotected value has both confident
 `IKeyProvider` remains the key-management boundary. `StaticKeyProvider` is useful for tests and simple firmware and accepts `std::array` directly:
 
 ```cpp
-constexpr std::array<uint8_t, 32> key = { /* ... */ };
+constexpr std::array<uint8_t, 32> key = { /*... */ };
 keys.Add(7, AeadAlgorithm::AES256GCM, key);
 ```
 
