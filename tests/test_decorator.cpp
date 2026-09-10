@@ -7,14 +7,7 @@
 
 using namespace ESPressio::Security;
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class TinyCipher final : public IAeadCipher {
 public:
     AeadAlgorithm Algorithm() const noexcept override { return AeadAlgorithm::TestOnly; }
@@ -66,15 +59,7 @@ public:
     }
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - next (uint8_t): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class Random final : public IRandomSource {
 public:
     bool Fill(uint8_t* output, std::size_t size) override {
@@ -85,17 +70,7 @@ private:
     uint8_t next = 0;
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - receiver (Receiver): 92 bytes [0 bytes dynamic allocation]
- * - last (std::vector<uint8_t>): 12 bytes [Capacity * (1 bytes) element storage]
- * Total Memory: 108 bytes [last: Capacity * (1 bytes) element storage]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 class LoopbackCarrier final : public ITransportSecurityCarrier {
 public:
     bool Send(uint8_t protocol, const uint8_t* data, std::size_t size) override {

@@ -27,13 +27,7 @@ using SecurityString = System::Memory::String<
 >;
 
 /// <summary>Identifies the authenticated-encryption algorithm used by a protected payload.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum class AeadAlgorithm : uint8_t {
     Unknown = 0,
     AES128GCM = 1,
@@ -45,13 +39,7 @@ enum class AeadAlgorithm : uint8_t {
 };
 
 /// <summary>Controls whether transport payload protection is disabled, opportunistic, or mandatory.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum class TransportSecurityPolicy : uint8_t {
     Disabled = 0,
     Preferred = 1,
@@ -59,13 +47,7 @@ enum class TransportSecurityPolicy : uint8_t {
 };
 
 /// <summary>Identifies portable failures that can occur while protecting or unprotecting transport data.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum class SecurityError : uint8_t {
     None = 0,
     InvalidArgument,
@@ -85,18 +67,7 @@ enum class SecurityError : uint8_t {
 };
 
 /// <summary>Reports the outcome of a security operation together with protection state and diagnostic detail.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Success (bool): 1 bytes [0 bytes dynamic allocation]
- * - Protected (bool): 1 bytes [0 bytes dynamic allocation]
- * - Error (SecurityError): 1 bytes [0 bytes dynamic allocation]
- * - Message (SecurityString): 24 bytes [_value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * Total Memory: 28 bytes [Message: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct SecurityResult {
     bool Success = false;
     bool Protected = false;
@@ -121,15 +92,7 @@ struct SecurityResult {
 
 /// <summary>Immutable shared backing storage for borrowed cryptographic key views.</summary>
 /// <remarks>Key bytes are securely overwritten when the last retained view releases the storage. This allows a provider to rotate or remove an entry without invalidating an operation that already borrowed it.</remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Bytes (SecurityBuffer): 12 bytes [Capacity * (1 bytes) element storage]
- * Total Memory: 12 bytes [Bytes: Capacity * (1 bytes) element storage]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct KeyMaterialStorage final {
     SecurityBuffer Bytes;
 
@@ -150,18 +113,7 @@ struct KeyMaterialStorage final {
 /// immutable backing storage. Provider mutation may remove or replace an entry, but an already returned view remains
 /// valid until that view is destroyed. Callers must not modify or release <c>Data</c> directly.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - KeyID (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - Data (uint8_t*): 4 bytes [0 bytes dynamic allocation]
- * - Size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - Storage (std::shared_ptr<KeyMaterialStorage>): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 12 bytes; pointee: Bytes: Capacity * (1 bytes) element storage]
- * Total Memory: 20 bytes [Storage: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 12 bytes; Storage: pointee: Bytes: Capacity * (1 bytes) element storage]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct KeyMaterialView {
     uint32_t KeyID = 0;
     const uint8_t* Data = nullptr;
@@ -186,20 +138,7 @@ struct KeyMaterialView {
 };
 
 /// <summary>Configures transport protection policy, outbound identity, limits, and replay handling.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Policy (TransportSecurityPolicy): 1 bytes [0 bytes dynamic allocation]
- * - OutboundAlgorithm (AeadAlgorithm): 1 bytes [0 bytes dynamic allocation]
- * - OutboundKeyID (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - SenderID (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - SessionID (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - MaximumPlaintextBytes (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - ReplayWindowSize (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 32 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct TransportSecurityConfig {
     TransportSecurityPolicy Policy = TransportSecurityPolicy::Required;
     AeadAlgorithm OutboundAlgorithm = AeadAlgorithm::AES256GCM;
@@ -211,22 +150,7 @@ struct TransportSecurityConfig {
 };
 
 /// <summary>Decoded transport payload plus security metadata recovered from its envelope.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Protocol (uint8_t): 1 bytes [0 bytes dynamic allocation]
- * - KeyID (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - SenderID (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - SessionID (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - Sequence (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - Algorithm (AeadAlgorithm): 1 bytes [0 bytes dynamic allocation]
- * - Protected (bool): 1 bytes [0 bytes dynamic allocation]
- * - Data (SecurityBuffer): 12 bytes [Capacity * (1 bytes) element storage]
- * Total Memory: 48 bytes [Data: Capacity * (1 bytes) element storage]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct UnprotectedPayload {
     uint8_t Protocol = 0;
     uint32_t KeyID = 0;

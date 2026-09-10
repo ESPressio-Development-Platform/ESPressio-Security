@@ -1,14 +1,7 @@
 #pragma once
 #include <cstddef>
 #define MBEDTLS_CHACHAPOLY_C 1
-/**
- * ESPressio Memory Audit
- * Members:
- * - dummy (int): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 typedef struct { int dummy; } mbedtls_chachapoly_context;
 inline void mbedtls_chachapoly_init(mbedtls_chachapoly_context*){}
 inline void mbedtls_chachapoly_free(mbedtls_chachapoly_context*){}

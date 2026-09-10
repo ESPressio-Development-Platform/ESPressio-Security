@@ -15,17 +15,7 @@ namespace ESPressio::Security {
 
 /// <summary>In-memory key provider that owns a static set of algorithm-specific key entries.</summary>
 /// <remarks>Entry mutation is serialized and returned key views retain immutable shared backing storage, so key rotation/removal cannot invalidate an in-flight cryptographic operation.</remarks>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _mutex (System::Synchronization::Mutex): 20 bytes [_owned: owned object: 4 bytes; _fallback: _mutex: native synchronization state may allocate platform resources lazily]
- * - _entries (EntryStorage): 12 bytes [Capacity * (16 bytes) element storage; N live elements each: Storage: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 12 bytes; N live elements each: Storage: pointee: Bytes: Capacity * (1 bytes) element storage]
- * Total Memory: 36 bytes [_mutex: _owned: owned object: 4 bytes; _mutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; _entries: Capacity * (16 bytes) element storage; _entries: N live elements each: Storage: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 12 bytes; _entries: N live elements each: Storage: pointee: Bytes: Capacity * (1 bytes) element storage]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 class StaticKeyProvider final : public IKeyProvider {
 private:
     static constexpr auto ExternalPreferred =
@@ -34,17 +24,7 @@ private:
 public:
     /// <summary>Owned key entry identified by key ID and authenticated-encryption algorithm.</summary>
     /// <remarks>The entry retains immutable shared key storage whose byte buffer follows the System external-preferred policy consistently.</remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - KeyID (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - Algorithm (AeadAlgorithm): 1 bytes [0 bytes dynamic allocation]
- * - Storage (std::shared_ptr<KeyMaterialStorage>): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 12 bytes; pointee: Bytes: Capacity * (1 bytes) element storage]
- * Total Memory: 16 bytes [Storage: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 12 bytes; Storage: pointee: Bytes: Capacity * (1 bytes) element storage]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct Entry {
         uint32_t KeyID = 0;
         AeadAlgorithm Algorithm = AeadAlgorithm::Unknown;

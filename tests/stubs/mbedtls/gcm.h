@@ -3,14 +3,7 @@
 #define MBEDTLS_GCM_C 1
 #define MBEDTLS_CIPHER_ID_AES 1
 #define MBEDTLS_GCM_ENCRYPT 1
-/**
- * ESPressio Memory Audit
- * Members:
- * - dummy (int): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 typedef struct { int dummy; } mbedtls_gcm_context;
 inline void mbedtls_gcm_init(mbedtls_gcm_context*){}
 inline void mbedtls_gcm_free(mbedtls_gcm_context*){}

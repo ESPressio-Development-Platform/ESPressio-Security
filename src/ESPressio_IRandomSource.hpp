@@ -7,13 +7,7 @@
 namespace ESPressio::Security {
 
 /// <summary>Provides random bytes for nonces, session identifiers, and other security material.</summary>
-/**
- * ESPressio Memory Audit
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class IRandomSource {
 public:
     virtual ~IRandomSource() = default;
@@ -23,14 +17,7 @@ public:
 };
 
 /// <summary>Portable random source backed by <c>std::random_device</c>.</summary>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class StandardRandomSource final : public IRandomSource {
 public:
     /// <inheritdoc/>

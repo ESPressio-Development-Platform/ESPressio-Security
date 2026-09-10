@@ -9,16 +9,7 @@ namespace ESPressio::Security {
 
 /// <summary>Tracks recently accepted authenticated sequence numbers to reject replayed transport payloads.</summary>
 /// <remarks>Replay-domain bookkeeping uses ESPressio System ExternalPreferred storage because authenticated sequence history is persistent metadata that does not require internal or DMA-capable RAM.</remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _windowSize (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - _states (System::Memory::Vector<State, System::Memory::MemoryPolicy::ExternalPreferred>): 12 bytes [Capacity * (36 bytes) element storage]
- * Total Memory: 16 bytes [_states: Capacity * (36 bytes) element storage]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 class ReplayWindow {
 public:
     /// <summary>Creates a replay window clamped to between one and 64 sequence positions.</summary>
@@ -62,18 +53,7 @@ public:
     void Reset() { _states.clear(); }
 
 private:
-/**
- * ESPressio Memory Audit
- * Members:
- * - SenderID (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - KeyID (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - SessionID (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - Highest (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - Bitmap (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 36 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct State {
         uint64_t SenderID;
         uint32_t KeyID;

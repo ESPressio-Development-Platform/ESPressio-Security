@@ -6,28 +6,13 @@
 #include "ESPressio_Security.hpp"
 using namespace ESPressio::Security;
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - next (uint8_t): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class DeterministicRandom final : public IRandomSource {
 public: bool Fill(uint8_t* output,std::size_t size) override { for(std::size_t i=0;i<size;++i) output[i]=next++; return true; }
 private: uint8_t next=1;
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class TestCipher final : public IAeadCipher {
 public:
     AeadAlgorithm Algorithm() const noexcept override{return AeadAlgorithm::TestOnly;} const char* Name() const noexcept override{return "TEST-ONLY";}

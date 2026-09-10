@@ -9,15 +9,7 @@
 namespace ESPressio::Security {
 
 /// <summary>Non-owning associated context authenticated alongside protected data.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Data (uint8_t*): 4 bytes [0 bytes dynamic allocation]
- * - Size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct DataProtectionContext {
     const uint8_t* Data = nullptr;
     std::size_t Size = 0;
@@ -32,13 +24,7 @@ struct DataProtectionContext {
 };
 
 /// <summary>Protects and unprotects opaque application data using an implementation-defined authenticated envelope.</summary>
-/**
- * ESPressio Memory Audit
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class IDataProtector {
 public:
     virtual ~IDataProtector() = default;

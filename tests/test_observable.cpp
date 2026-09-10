@@ -6,20 +6,7 @@
 
 using namespace ESPressio::Security;
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - ConfigurationChanged (int): 4 bytes [0 bytes dynamic allocation]
- * - SessionReset (int): 4 bytes [0 bytes dynamic allocation]
- * - SessionEstablished (int): 4 bytes [0 bytes dynamic allocation]
- * - ReplayReset (int): 4 bytes [0 bytes dynamic allocation]
- * - Failures (int): 4 bytes [0 bytes dynamic allocation]
- * - LastSession (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 32 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class Observer final : public ITransportSecurityObserver {
 public:
     int ConfigurationChanged = 0;

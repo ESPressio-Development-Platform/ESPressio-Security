@@ -8,16 +8,7 @@
 namespace ESPressio::Event {
 
 /// <summary>Event emitted when the active transport-security configuration changes.</summary>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - Before (Security::TransportSecurityConfig): 32 bytes [0 bytes dynamic allocation]
- * - After (Security::TransportSecurityConfig): 32 bytes [0 bytes dynamic allocation]
- * Total Memory: 88 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class TransportSecurityConfigurationChangedEvent final
     : public TypedEvent<TransportSecurityConfigurationChangedEvent> {
 public:
@@ -33,15 +24,7 @@ public:
 };
 
 /// <summary>Event emitted when transport-security session state is reset.</summary>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - PreviousSessionID (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 32 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class TransportSecuritySessionResetEvent final
     : public TypedEvent<TransportSecuritySessionResetEvent> {
 public:
@@ -53,15 +36,7 @@ public:
 };
 
 /// <summary>Event emitted when a transport-security session becomes established.</summary>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - SessionID (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 32 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class TransportSecuritySessionEstablishedEvent final
     : public TypedEvent<TransportSecuritySessionEstablishedEvent> {
 public:
@@ -73,28 +48,12 @@ public:
 };
 
 /// <summary>Event emitted when transport replay-protection state is reset.</summary>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
- * Total Memory: 24 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class TransportSecurityReplayProtectionResetEvent final
     : public TypedEvent<TransportSecurityReplayProtectionResetEvent> {};
 
 /// <summary>Event emitted when a transport-security operation fails.</summary>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - Result (Security::SecurityResult): 28 bytes [Message: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * Total Memory: 52 bytes [Result: Message: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 class TransportSecurityFailureEvent final
     : public TypedEvent<TransportSecurityFailureEvent> {
 public:
