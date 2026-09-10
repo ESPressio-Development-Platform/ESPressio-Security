@@ -2,9 +2,7 @@
 
 Authenticated data protection, transport security, replay protection and key abstraction for the ESPressio Development Platform.
 
-## Current Version — 0.4.2
-
-During the release restructuring, the optional Security Event integration is validated against ESPressio Event `main` and the current ESPressio Serializable dependency chain on `main`. The data-protection and transport-security APIs introduced through 0.4.0 are unchanged.
+The optional Security Event integration consumes ESPressio Event and the current ESPressio Serializable dependency chain. The data-protection and transport-security APIs are retained unchanged during the active platform-abstraction tranche.
 
 The active platform-abstraction tranche additionally routes hardware entropy through ESPressio-System. Cryptographic algorithms and security policy remain in this library; target-specific random-number generation belongs to the installed platform provider.
 
