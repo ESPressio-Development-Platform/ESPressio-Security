@@ -8,7 +8,7 @@ include(FetchContent)
 FetchContent_Declare(
     ESPressioSystem
     GIT_REPOSITORY https://github.com/ESPressio-Development-Platform/ESPressio-System.git
-    GIT_TAG structural_realignment
+    GIT_TAG ota_v1
     GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(ESPressioSystem)
@@ -17,7 +17,7 @@ set(ESPRESSIO_SYSTEM_INCLUDE ${espressiosystem_SOURCE_DIR}/src)
 FetchContent_Declare(
     ESPressioObservable
     GIT_REPOSITORY https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git
-    GIT_TAG structural_realignment
+    GIT_TAG primitives_redesign
     GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(ESPressioObservable)
@@ -37,6 +37,8 @@ add_executable(SecurityObservable test_observable.cpp)
 target_include_directories(SecurityObservable PRIVATE ${SECURITY_INCLUDES})
 add_executable(KeyProviderLifetime test_key_provider_lifetime.cpp)
 target_include_directories(KeyProviderLifetime PRIVATE ${SECURITY_INCLUDES})
+add_executable(VerificationContracts test_verification_contracts.cpp)
+target_include_directories(VerificationContracts PRIVATE ${SECURITY_INCLUDES})
 
 enable_testing()
 add_test(NAME Security COMMAND Security)
@@ -45,3 +47,4 @@ add_test(NAME SecureTransportDecorator COMMAND SecureTransportDecorator)
 add_test(NAME MbedTLSCompile COMMAND MbedTLSCompile)
 add_test(NAME SecurityObservable COMMAND SecurityObservable)
 add_test(NAME KeyProviderLifetime COMMAND KeyProviderLifetime)
+add_test(NAME VerificationContracts COMMAND VerificationContracts)
