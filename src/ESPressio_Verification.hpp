@@ -57,8 +57,19 @@ public:
 };
 static_assert(sizeof(TrustPolicyIdentifier) == 4U, "TrustPolicyIdentifier must be exactly four bytes");
 
+namespace DigestAlgorithm {
+inline constexpr DigestAlgorithmIdentifier SHA256{1U};
+} // namespace DigestAlgorithm
+
 struct ByteView final {
     const std::uint8_t* Data{nullptr};
+    std::size_t Size{0};
+
+    constexpr bool IsValid() const noexcept { return Data != nullptr || Size == 0U; }
+};
+
+struct MutableByteView final {
+    std::uint8_t* Data{nullptr};
     std::size_t Size{0};
 
     constexpr bool IsValid() const noexcept { return Data != nullptr || Size == 0U; }
@@ -100,6 +111,23 @@ struct VerificationResult final {
     static constexpr VerificationResult Ok() noexcept {
         return {VerificationStatus::Success, 0};
     }
+};
+
+/**
+ * Produces a cryptographic digest incrementally into caller-owned bounded storage.
+ *
+ * The algorithm and digest representation are Security-owned. Callers must provide
+ * at least DigestSize(algorithm) bytes to Finalize(). Implementations must never
+ * silently truncate a digest.
+ */
+class IStreamingDigest {
+public:
+    virtual ~IStreamingDigest() = default;
+    virtual bool Supports(DigestAlgorithmIdentifier algorithm) const noexcept = 0;
+    virtual std::size_t DigestSize(DigestAlgorithmIdentifier algorithm) const noexcept = 0;
+    virtual VerificationResult Begin(DigestAlgorithmIdentifier algorithm) noexcept = 0;
+    virtual VerificationResult Update(ByteView bytes) noexcept = 0;
+    virtual VerificationResult Finalize(MutableByteView output, std::size_t& written) noexcept = 0;
 };
 
 class IStreamingDigestVerifier {
