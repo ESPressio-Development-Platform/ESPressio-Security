@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ESPressio_SecurityTypes.hpp"
+#include "ESPressio_Verification.hpp"
 #include "ESPressio_IAeadCipher.hpp"
 #include "ESPressio_AeadCipherRegistry.hpp"
 #include "ESPressio_IKeyProvider.hpp"
