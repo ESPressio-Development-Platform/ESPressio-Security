@@ -19,7 +19,7 @@
     },
     {
       "name": "ESPressio-System",
-      "version": "https://github.com/ESPressio-Development-Platform/ESPressio-System.git#primitives_redesign"
+      "version": "https://github.com/ESPressio-Development-Platform/ESPressio-System.git#ota_v1"
     }
   ]
 }
