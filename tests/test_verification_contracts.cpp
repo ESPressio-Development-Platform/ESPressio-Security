@@ -13,7 +13,7 @@ constexpr SignatureAlgorithmIdentifier TestSignature{1U};
 constexpr TrustAnchorIdentifier TestAnchor{7U};
 constexpr TrustPolicyIdentifier TestPolicy{3U};
 
-class FakeDigest final : public IStreamingDigestVerifier {
+class FakeDigest final : public IStreamingDigest, public IStreamingDigestVerifier {
     std::uint8_t sum_{0U};
     bool active_{false};
 public:
@@ -35,6 +35,16 @@ public:
     VerificationResult Update(ByteView bytes) noexcept override {
         if (!active_ || !bytes.IsValid()) return {VerificationStatus::InvalidArgument, 0};
         for (std::size_t i = 0; i < bytes.Size; ++i) sum_ = static_cast<std::uint8_t>(sum_ + bytes.Data[i]);
+        return VerificationResult::Ok();
+    }
+
+    VerificationResult Finalize(MutableByteView output, std::size_t& written) noexcept override {
+        written = 0U;
+        if (!active_ || !output.IsValid()) return {VerificationStatus::InvalidArgument, 0};
+        if (output.Size < 1U) return {VerificationStatus::CapacityUnavailable, 0};
+        output.Data[0] = sum_;
+        written = 1U;
+        active_ = false;
         return VerificationResult::Ok();
     }
 
@@ -103,6 +113,7 @@ int main() {
     static_assert(sizeof(SignatureAlgorithmIdentifier) == 2U);
     static_assert(sizeof(TrustAnchorIdentifier) == 4U);
     static_assert(sizeof(TrustPolicyIdentifier) == 4U);
+    static_assert(DigestAlgorithm::SHA256.Value() == 1U);
 
     const std::uint8_t bytes[]{2U, 3U, 4U};
     const std::uint8_t goodDigest[]{9U};
@@ -111,16 +122,23 @@ int main() {
     if (!digest.Update({bytes, sizeof(bytes)})) return 2;
     if (!digest.VerifyFinal({goodDigest, sizeof(goodDigest)})) return 3;
 
+    if (!digest.Begin(TestDigest)) return 4;
+    if (!digest.Update({bytes, sizeof(bytes)})) return 5;
+    std::uint8_t produced[1]{};
+    std::size_t written = 0U;
+    if (!digest.Finalize({produced, sizeof(produced)}, written)) return 6;
+    if (written != 1U || produced[0] != goodDigest[0]) return 7;
+
     FakeTrustAnchors anchors;
     TrustAnchorView anchor{};
-    if (!anchors.Resolve(TestAnchor, anchor)) return 4;
+    if (!anchors.Resolve(TestAnchor, anchor)) return 8;
 
     FakeTrustPolicy policy;
-    if (!policy.Authorize(TestPolicy, TrustPurpose::SoftwareUpdateManifest, TestAnchor)) return 5;
+    if (!policy.Authorize(TestPolicy, TrustPurpose::SoftwareUpdateManifest, TestAnchor)) return 9;
 
     FakeSignatureVerifier verifier;
     const std::uint8_t signature[]{2U};
-    if (!verifier.Verify(TestSignature, {bytes, sizeof(bytes)}, {signature, sizeof(signature)}, anchor)) return 6;
+    if (!verifier.Verify(TestSignature, {bytes, sizeof(bytes)}, {signature, sizeof(signature)}, anchor)) return 10;
 
     const std::uint8_t badSignature[]{8U};
     const auto rejected = verifier.Verify(
@@ -128,5 +146,5 @@ int main() {
         {bytes, sizeof(bytes)},
         {badSignature, sizeof(badSignature)},
         anchor);
-    return rejected.Status == VerificationStatus::InvalidSignature ? 0 : 7;
+    return rejected.Status == VerificationStatus::InvalidSignature ? 0 : 11;
 }
