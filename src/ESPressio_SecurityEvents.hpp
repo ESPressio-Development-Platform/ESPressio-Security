@@ -1,65 +1,96 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
+#include <string_view>
 
 #include <ESPressio_Event.hpp>
 #include <ESPressio_SecurityTypes.hpp>
 
 namespace ESPressio::Event {
 
-/// <summary>Event emitted when the active transport-security configuration changes.</summary>
+namespace SecurityEventTypeIds {
+inline constexpr EventTypeId TransportConfigurationChanged{0x4553534500000001ULL};
+inline constexpr EventTypeId TransportSessionReset{0x4553534500000002ULL};
+inline constexpr EventTypeId TransportSessionEstablished{0x4553534500000003ULL};
+inline constexpr EventTypeId TransportReplayProtectionReset{0x4553534500000004ULL};
+inline constexpr EventTypeId TransportFailure{0x4553534500000005ULL};
+} // namespace SecurityEventTypeIds
 
-class TransportSecurityConfigurationChangedEvent final
-    : public TypedEvent<TransportSecurityConfigurationChangedEvent> {
-public:
-    /// <summary>Configuration active before the change.</summary>
-    const Security::TransportSecurityConfig Before;
-    /// <summary>Configuration active after the change.</summary>
-    const Security::TransportSecurityConfig After;
-    /// <summary>Creates a configuration-change event from the previous and current settings.</summary>
+/// Bounded optional diagnostic occurrence emitted after the active
+/// transport-security configuration changes.
+struct TransportSecurityConfigurationChangedEvent final
+    : Event<TransportSecurityConfigurationChangedEvent> {
+    static constexpr EventTypeId TypeId = SecurityEventTypeIds::TransportConfigurationChanged;
+    static constexpr std::string_view CanonicalName =
+        "espressio.security.transport-configuration-changed";
+    static constexpr std::size_t MaximumLiveInstances = 4U;
+    static constexpr std::size_t MaximumPendingInstances = 1U;
+
+    Security::TransportSecurityConfig Before;
+    Security::TransportSecurityConfig After;
+
     TransportSecurityConfigurationChangedEvent(
         const Security::TransportSecurityConfig& before,
-        const Security::TransportSecurityConfig& after
-    ) : Before(before), After(after) {}
+        const Security::TransportSecurityConfig& after)
+        : Before(before), After(after) {}
 };
 
-/// <summary>Event emitted when transport-security session state is reset.</summary>
+/// Bounded optional diagnostic occurrence emitted when transport-security
+/// sequence/session state is reset.
+struct TransportSecuritySessionResetEvent final
+    : Event<TransportSecuritySessionResetEvent> {
+    static constexpr EventTypeId TypeId = SecurityEventTypeIds::TransportSessionReset;
+    static constexpr std::string_view CanonicalName =
+        "espressio.security.transport-session-reset";
+    static constexpr std::size_t MaximumLiveInstances = 4U;
+    static constexpr std::size_t MaximumPendingInstances = 1U;
 
-class TransportSecuritySessionResetEvent final
-    : public TypedEvent<TransportSecuritySessionResetEvent> {
-public:
-    /// <summary>Session identifier that was active before the reset.</summary>
-    const uint64_t PreviousSessionID;
-    /// <summary>Creates a session-reset event.</summary>
-    explicit TransportSecuritySessionResetEvent(uint64_t previousSessionID)
+    std::uint64_t PreviousSessionID{};
+
+    explicit TransportSecuritySessionResetEvent(std::uint64_t previousSessionID) noexcept
         : PreviousSessionID(previousSessionID) {}
 };
 
-/// <summary>Event emitted when a transport-security session becomes established.</summary>
+/// Bounded optional diagnostic occurrence emitted when a transport-security
+/// session becomes established.
+struct TransportSecuritySessionEstablishedEvent final
+    : Event<TransportSecuritySessionEstablishedEvent> {
+    static constexpr EventTypeId TypeId = SecurityEventTypeIds::TransportSessionEstablished;
+    static constexpr std::string_view CanonicalName =
+        "espressio.security.transport-session-established";
+    static constexpr std::size_t MaximumLiveInstances = 4U;
+    static constexpr std::size_t MaximumPendingInstances = 1U;
 
-class TransportSecuritySessionEstablishedEvent final
-    : public TypedEvent<TransportSecuritySessionEstablishedEvent> {
-public:
-    /// <summary>Established session identifier.</summary>
-    const uint64_t SessionID;
-    /// <summary>Creates a session-established event.</summary>
-    explicit TransportSecuritySessionEstablishedEvent(uint64_t sessionID)
+    std::uint64_t SessionID{};
+
+    explicit TransportSecuritySessionEstablishedEvent(std::uint64_t sessionID) noexcept
         : SessionID(sessionID) {}
 };
 
-/// <summary>Event emitted when transport replay-protection state is reset.</summary>
+/// Bounded optional diagnostic occurrence emitted when inbound replay-protection
+/// state is reset.
+struct TransportSecurityReplayProtectionResetEvent final
+    : Event<TransportSecurityReplayProtectionResetEvent> {
+    static constexpr EventTypeId TypeId = SecurityEventTypeIds::TransportReplayProtectionReset;
+    static constexpr std::string_view CanonicalName =
+        "espressio.security.transport-replay-protection-reset";
+    static constexpr std::size_t MaximumLiveInstances = 4U;
+    static constexpr std::size_t MaximumPendingInstances = 1U;
+};
 
-class TransportSecurityReplayProtectionResetEvent final
-    : public TypedEvent<TransportSecurityReplayProtectionResetEvent> {};
+/// Bounded optional diagnostic occurrence emitted when a transport-security
+/// operation reports a failure.
+struct TransportSecurityFailureEvent final
+    : Event<TransportSecurityFailureEvent> {
+    static constexpr EventTypeId TypeId = SecurityEventTypeIds::TransportFailure;
+    static constexpr std::string_view CanonicalName =
+        "espressio.security.transport-failure";
+    static constexpr std::size_t MaximumLiveInstances = 4U;
+    static constexpr std::size_t MaximumPendingInstances = 1U;
 
-/// <summary>Event emitted when a transport-security operation fails.</summary>
+    Security::SecurityResult Result;
 
-class TransportSecurityFailureEvent final
-    : public TypedEvent<TransportSecurityFailureEvent> {
-public:
-    /// <summary>Security operation result describing the failure.</summary>
-    const Security::SecurityResult Result;
-    /// <summary>Creates a transport-security failure event.</summary>
     explicit TransportSecurityFailureEvent(const Security::SecurityResult& result)
         : Result(result) {}
 };
