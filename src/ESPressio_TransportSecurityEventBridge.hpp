@@ -1,5 +1,9 @@
 #pragma once
 
+#include <atomic>
+#include <cstdint>
+#include <utility>
+
 #include <ESPressio_ITransportSecurityObserver.hpp>
 #include <ESPressio_TransportSecurity.hpp>
 
@@ -7,17 +11,32 @@
 
 namespace ESPressio::Event {
 
-
+/// Caller-owned optional projection from TransportSecurity observer callbacks
+/// into the bounded Event family. Event pressure never blocks Security and never
+/// changes Security-domain truth; missed diagnostic occurrences are counted.
 class TransportSecurityEventBridge final :
     public Security::ITransportSecurityObserver {
 private:
     Observable::ObserverHandlePtr _observerHandle;
     bool _initialized = false;
+    std::atomic<std::uint64_t> _unavailableOccurrences{0U};
+
+    template<class TEvent, class... Args>
+    void Emit(Args&&... args) noexcept {
+        try {
+            if (!TEvent::TryDispatch(std::forward<Args>(args)...)) {
+                ++_unavailableOccurrences;
+            }
+        } catch (...) {
+            ++_unavailableOccurrences;
+        }
+    }
 
 public:
     TransportSecurityEventBridge() = default;
     TransportSecurityEventBridge(const TransportSecurityEventBridge&) = delete;
     TransportSecurityEventBridge& operator=(const TransportSecurityEventBridge&) = delete;
+    ~TransportSecurityEventBridge() override { Shutdown(); }
 
     bool Initialize(Security::TransportSecurity& security) {
         if (_initialized) return true;
@@ -26,34 +45,38 @@ public:
         return _initialized;
     }
 
-    void Shutdown() {
+    void Shutdown() noexcept {
         _observerHandle.reset();
         _initialized = false;
     }
 
-    bool IsInitialized() const { return _initialized; }
+    bool IsInitialized() const noexcept { return _initialized; }
+
+    std::uint64_t UnavailableOccurrences() const noexcept {
+        return _unavailableOccurrences.load(std::memory_order_relaxed);
+    }
 
     void OnTransportSecurityConfigurationChanged(
         const Security::TransportSecurityConfig& before,
         const Security::TransportSecurityConfig& after
     ) override {
-        (new TransportSecurityConfigurationChangedEvent(before, after))->Queue();
+        Emit<TransportSecurityConfigurationChangedEvent>(before, after);
     }
 
-    void OnTransportSecuritySessionReset(uint64_t previousSessionID) override {
-        (new TransportSecuritySessionResetEvent(previousSessionID))->Queue();
+    void OnTransportSecuritySessionReset(std::uint64_t previousSessionID) override {
+        Emit<TransportSecuritySessionResetEvent>(previousSessionID);
     }
 
-    void OnTransportSecuritySessionEstablished(uint64_t sessionID) override {
-        (new TransportSecuritySessionEstablishedEvent(sessionID))->Queue();
+    void OnTransportSecuritySessionEstablished(std::uint64_t sessionID) override {
+        Emit<TransportSecuritySessionEstablishedEvent>(sessionID);
     }
 
     void OnTransportSecurityReplayProtectionReset() override {
-        (new TransportSecurityReplayProtectionResetEvent())->Queue();
+        Emit<TransportSecurityReplayProtectionResetEvent>();
     }
 
     void OnTransportSecurityFailure(const Security::SecurityResult& result) override {
-        (new TransportSecurityFailureEvent(result))->Queue();
+        Emit<TransportSecurityFailureEvent>(result);
     }
 };
 
