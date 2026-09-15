@@ -28,12 +28,12 @@ Use `IDataProtector` / `DataProtector` when a value simply needs authenticated e
 
 # Installation
 
-During the coordinated platform-abstraction development tranche:
+During the coordinated Primitive Platform Redesign tranche:
 
 ```ini
 lib_deps =
-    https://github.com/ESPressio-Development-Platform/ESPressio-System.git#main
-    https://github.com/ESPressio-Development-Platform/ESPressio-Security.git#main
+    https://github.com/ESPressio-Development-Platform/ESPressio-System.git#primitives_redesign
+    https://github.com/ESPressio-Development-Platform/ESPressio-Security.git#primitives_redesign
 ```
 
 On ESP32, the top-level application also installs the ESPressio-ESP32 System providers before Security first needs hardware entropy:
@@ -44,7 +44,7 @@ On ESP32, the top-level application also installs the ESPressio-ESP32 System pro
 ESPressio::ESP32Platform::InstallSystemProviders();
 ```
 
-During the release restructuring, consume ESPressio dependencies from their `main` branches until the new platform-wide release generation is published.
+While the coordinated redesign remains unreleased, consume coordinated ESPressio dependencies from their `primitives_redesign` branches. Release/tag integration remains a separate operation.
 
 The normal Security umbrella is:
 
